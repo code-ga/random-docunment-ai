@@ -41,6 +41,10 @@ export class WorkspaceService {
       userID: workspace[0].userId
     } as const;
   }
+
+  async chat (chatId: string, message: string, workspaceId: string) {
+    
+  }
 }
 
 export const workspaceService = new Elysia({ name: "workspace/service" }).decorate("workspaceService", new WorkspaceService());

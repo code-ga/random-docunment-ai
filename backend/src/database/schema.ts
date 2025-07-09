@@ -3,7 +3,9 @@ import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   index,
+  pgEnum,
   pgTable,
+  serial,
   text,
   timestamp,
   vector
@@ -105,6 +107,7 @@ const documents = pgTable("document", {
   workspaceId: text('workspace_id').notNull().references(() => workspace.id),
   savingPath: text('saving_path'),
   embedding: vector('embedding', { dimensions: 1536 }),
+  embedder: text('embedder'),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -113,6 +116,32 @@ const documents = pgTable("document", {
     index('embeddingIndex').using('hnsw', table.embedding.op('vector_cosine_ops')),
   ]
 );
+
+// Chat table
+export const chats = pgTable('chats', {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  userId: text('user_id').notNull().references(() => user.id),
+  workspaceId: text('workspace_id').notNull().references(() => workspace.id),
+  title: text('title').notNull().$defaultFn(() => "New Chat"),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Message role enum: 'user' or 'assistant'
+export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
+
+// Message table
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  chatId: text('chat_id')
+    .references(() => chats.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: text('user_id').notNull().references(() => user.id),
+  role: messageRoleEnum('role').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  // tokens: integer('tokens'), // Optional: for tracking usage
+});
 
 const documentRelations = relations(documents, ({ one }) => ({
   workspace: one(workspace, {
