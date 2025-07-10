@@ -3,6 +3,9 @@ import { BASE_API_URL } from '../constain';
 
 const authClient = createAuthClient({
   baseURL: BASE_API_URL + '/auth',
+  fetchOptions: {
+    credentials: "include"
+  }
 });
 
 export const {
