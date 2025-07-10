@@ -1,16 +1,24 @@
-import React from "react";
-import { signIn } from "../lib/auth";
+import React, { useEffect } from "react";
+import { signIn, useSession } from "../lib/auth";
+import { useNavigate } from "react-router";
 
 const RANDOM_BG =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80";
 
 export function Login() {
-  const callbackURL = new URL(
-    window && window.location ? window.location.href : ""
-  );
+  const { data: session, isPending } = useSession();
+  const redirect = useNavigate();
+
+  React.useEffect(() => {
+    if (!isPending && session?.user) {
+      redirect("/dashboard");
+    }
+  }, [isPending, session]);
+
+  if (typeof window === "undefined") return null;
+  const callbackURL = new URL(window ? window.location.href : "");
   // redirect to dashboard
   callbackURL.pathname = "/dashboard";
-  console.log(callbackURL)
   return (
     <div
       style={{

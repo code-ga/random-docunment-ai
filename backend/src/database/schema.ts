@@ -89,7 +89,7 @@ export const verificationTokenRelations = relations(verification, ({ one }) => (
   }),
 }))
 
-const workspace = pgTable("workspace", {
+export const workspace = pgTable("workspace", {
   id: text("id").primaryKey().$defaultFn(createId),
   name: text('name').notNull(),
   userId: text('user_id').notNull().references(() => user.id),
@@ -100,7 +100,7 @@ const workspace = pgTable("workspace", {
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
-const documents = pgTable("document", {
+export const documents = pgTable("document", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   title: text('title').notNull().$defaultFn(() => createId()),
   content: text('content').notNull(),
@@ -143,7 +143,7 @@ export const messages = pgTable('messages', {
   // tokens: integer('tokens'), // Optional: for tracking usage
 });
 
-const documentRelations = relations(documents, ({ one }) => ({
+export const documentRelations = relations(documents, ({ one }) => ({
   workspace: one(workspace, {
     fields: [documents.workspaceId],
     references: [workspace.id],
@@ -154,8 +154,35 @@ const documentRelations = relations(documents, ({ one }) => ({
   }),
 }))
 
-export const workspaceRelations = relations(workspace, ({ many }) => ({
+export const workspaceRelations = relations(workspace, ({ many, one }) => ({
   documents: many(documents),
+  user: one(user, {
+    fields: [workspace.userId],
+    references: [user.id],
+  }),
+}))
+
+export const chatRelations = relations(chats, ({ one, many }) => ({
+  user: one(user, {
+    fields: [chats.userId],
+    references: [user.id],
+  }),
+  workspace: one(workspace, {
+    fields: [chats.workspaceId],
+    references: [workspace.id],
+  }),
+  messages: many(messages),
+}))
+
+export const messageRelations = relations(messages, ({ one }) => ({
+  chat: one(chats, {
+    fields: [messages.chatId],
+    references: [chats.id],
+  }),
+  user: one(user, {
+    fields: [messages.userId],
+    references: [user.id],
+  }),
 }))
 
 export const dbRelations = {
@@ -164,7 +191,9 @@ export const dbRelations = {
   session: sessionRelations,
   verification: verificationTokenRelations,
   workspace: workspaceRelations,
-  documents: documentRelations
+  documents: documentRelations,
+  chats: chatRelations,
+  messages: messageRelations
 }
 
 
@@ -174,7 +203,9 @@ export const table = {
   session,
   verification,
   workspace,
-  documents
+  documents,
+  chats,
+  messages
 } as const
 
 export type Table = typeof table

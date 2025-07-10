@@ -11,13 +11,7 @@ fi
 
 # Export each variable from the .env file
 export_envs() {
-  while IFS= read -r line || [ -n "$line" ]; do
-    # Skip comments and empty lines
-    case "$line" in
-      ''|\#*) continue ;;
-    esac
-    # Export the variable
-    export "$line"
+  source .env
   done < "$ENV_FILE"
 }
 
