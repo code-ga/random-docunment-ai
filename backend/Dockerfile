@@ -34,7 +34,7 @@ FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/ .
 RUN chmod +x ./run.sh
-
+ENV NODE_ENV=production
 # run the app
 # USER bun
 EXPOSE 3000/tcp
