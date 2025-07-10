@@ -82,8 +82,8 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
         )
         .post("/create", async ctx => {
           const { id } = ctx.user;
-          const { name, description } = ctx.body as { name: string, description: string };
-          const workspace = await ctx.workspaceService.createWorkspace(name, id, description);
+          const { name, description, public: isPublic } = ctx.body;
+          const workspace = await ctx.workspaceService.createWorkspace(name, id, description, isPublic);
           return {
             status: 200,
             message: "Workspace created successfully",
@@ -98,6 +98,7 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
             body: t.Object({
               name: t.String(),
               description: t.Optional(t.String()),
+              public: t.Optional(t.Boolean()),
             }),
             response: {
               200: baseResponseType(t.Object({ workspace: t.Array(workspaceSelectType) })),

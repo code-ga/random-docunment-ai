@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { signIn, useSession } from "../lib/auth";
 import { useNavigate } from "react-router";
+import LoadingPage from "../components/LoadingPage";
 
 const RANDOM_BG =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80";
@@ -14,7 +15,9 @@ export function Login() {
       redirect("/dashboard");
     }
   }, [isPending, session]);
-
+  
+  if (isPending) return <LoadingPage></LoadingPage>
+  
   if (typeof window === "undefined") return null;
   const callbackURL = new URL(window ? window.location.href : "");
   // redirect to dashboard

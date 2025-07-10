@@ -91,6 +91,9 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           const { id: workspaceId } = ctx.params;
           const { name, content } = ctx.body;
           const document = await ctx.documentService.createDocument(id, workspaceId, content, undefined, name);
+          if (!document) {
+            return ctx.status(400, { status: 400, type: "error", success: false, message: "Document not created" });
+          }
           return {
             status: 200,
             message: "Document created successfully",
@@ -115,6 +118,7 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
             }),
             response: {
               200: baseResponseType(t.Object({ document: t.Array(documentSelectType) })),
+              400: baseResponseType(t.Null()),
             },
           }
         )
@@ -128,6 +132,9 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           const content = await getContentOfFile(file);
           console.log(content)
           const document = await ctx.documentService.createDocument(id, workspaceId, content, undefined, name);
+          if (!document) {
+            return ctx.status(400, { status: 400, type: "error", success: false, message: "Document not created" });
+          }
           return {
             status: 200,
             message: "Document created successfully",

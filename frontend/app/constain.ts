@@ -1,1 +1,0 @@
-export const BASE_API_URL = "http://api-study-ai.nbth.id.vn/api";

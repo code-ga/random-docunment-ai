@@ -39,3 +39,7 @@ export type Workspace = Static<typeof workspaceSelectType>
 export const documentSelectType = createSelectSchema(table.documents)
 
 export type Document = Static<typeof documentSelectType>
+
+export const chatSelectType = createSelectSchema(table.chats);
+
+export type Chat = Static<typeof chatSelectType>

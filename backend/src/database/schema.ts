@@ -3,6 +3,7 @@ import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
   serial,
@@ -95,7 +96,7 @@ export const workspace = pgTable("workspace", {
   userId: text('user_id').notNull().references(() => user.id),
   description: text('description'),
   public: boolean('public').notNull().$default(() => false),
-  documentIds: text('document_ids').notNull().array().$defaultFn(() => []),
+  documentIds: text('document_ids').notNull().array().notNull().$defaultFn(() => []),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
@@ -103,19 +104,39 @@ export const workspace = pgTable("workspace", {
 export const documents = pgTable("document", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   title: text('title').notNull().$defaultFn(() => createId()),
-  content: text('content').notNull(),
+  // content: text('content').notNull(),
   workspaceId: text('workspace_id').notNull().references(() => workspace.id),
   savingPath: text('saving_path'),
-  embedding: vector('embedding', { dimensions: 1536 }),
-  embedder: text('embedder'),
+  // embedding: vector('embedding', { dimensions: 1536 }),
+  // embedder: text('embedder'),
+  chunkIds: text('chunk_ids').notNull().array().notNull().$defaultFn(() => []),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 },
+  // (table) => [
+  //   index('embeddingIndex').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  // ]
+);
+
+export const chunks = pgTable("chunk", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  content: text('content').notNull(),
+  documentId: text('document_id').notNull().references(() => documents.id),
+  workspaceId: text('workspace_id').notNull().references(() => workspace.id),
+  userId: text('user_id').notNull().references(() => user.id),
+  createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  embedder: text('embedder'),
+  fromLine: integer('from_line').notNull().default(0),
+  toLine: integer('to_line').notNull().default(0),
+  index: integer('index').notNull().default(0),
+},
   (table) => [
     index('embeddingIndex').using('hnsw', table.embedding.op('vector_cosine_ops')),
   ]
-);
+)
 
 // Chat table
 export const chats = pgTable('chats', {
@@ -136,10 +157,13 @@ export const messages = pgTable('messages', {
   chatId: text('chat_id')
     .references(() => chats.id, { onDelete: 'cascade' })
     .notNull(),
-  userId: text('user_id').notNull().references(() => user.id),
+  userId: text('user_id').references(() => user.id),
   role: messageRoleEnum('role').notNull(),
-  content: text('content').notNull(),
+  content: text('content'),
+  name: text('name'),
+  tool_call_id: text('tool_call_id'),
   createdAt: timestamp('created_at').defaultNow(),
+  index: integer('index').notNull().default(0),
   // tokens: integer('tokens'), // Optional: for tracking usage
 });
 
@@ -205,7 +229,8 @@ export const table = {
   workspace,
   documents,
   chats,
-  messages
+  messages,
+  chunks
 } as const
 
 export type Table = typeof table

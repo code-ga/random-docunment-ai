@@ -7,6 +7,9 @@ export default [
   layout("layouts/ProtectionRoute.tsx", [
     ...prefix("dashboard", [
       index("routes/dashboard/index.tsx"),
+      ...prefix("workspace", [
+        route("create", "routes/dashboard/workspace/create.tsx"),
+      ])
     ]),
   ])
 ] satisfies RouteConfig;

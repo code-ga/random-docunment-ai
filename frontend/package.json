@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@elysiajs/eden": "^1.3.2",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "better-auth": "^1.2.12",

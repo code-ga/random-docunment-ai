@@ -12,8 +12,8 @@ export class WorkspaceService {
     // because id is unique so it will return only one
     return await db.select().from(table.workspace).where(eq(table.workspace.id, id)).limit(1);
   }
-  async createWorkspace(name: string, userId: string, description?: string) {
-    return await db.insert(table.workspace).values({ name, description, userId }).returning();
+  async createWorkspace(name: string, userId: string, description?: string, isPublic?: boolean) {
+    return await db.insert(table.workspace).values({ name, description, userId, public: isPublic }).returning();
   }
   async deleteWorkspace(id: string) {
     return await db.delete(table.workspace).where(eq(table.workspace.id, id)).returning();
@@ -42,8 +42,8 @@ export class WorkspaceService {
     } as const;
   }
 
-  async chat (chatId: string, message: string, workspaceId: string) {
-    
+  async chat(chatId: string, message: string, workspaceId: string) {
+
   }
 }
 

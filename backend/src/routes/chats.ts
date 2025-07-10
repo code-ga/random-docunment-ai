@@ -1,15 +1,12 @@
 import { run } from "@openai/agents";
-import { createSelectSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
-import { chats as chatsTable } from "../database/schema";
 import { userMiddleware } from "../middlewares/auth-middleware";
 import { chatService } from "../services/Chat";
 import { workspaceService } from "../services/Workspace";
-import { baseResponseType } from "../types";
+import { baseResponseType, chatSelectType } from "../types";
 import { getAgent } from "../utils/agent";
 
 
-const chatSelectType = createSelectSchema(chatsTable);
 
 export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
   .use(chatService)
