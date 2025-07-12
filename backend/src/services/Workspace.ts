@@ -18,8 +18,8 @@ export class WorkspaceService {
   async deleteWorkspace(id: string) {
     return await db.delete(table.workspace).where(eq(table.workspace.id, id)).returning();
   }
-  updateWorkspace(id: string, name?: string, description?: string) {
-    return db.update(table.workspace).set({ name, description }).where(eq(table.workspace.id, id)).returning();
+  updateWorkspace(id: string, name?: string, description?: string, isPublic?: boolean) {
+    return db.update(table.workspace).set({ name, description, public: isPublic }).where(eq(table.workspace.id, id)).returning();
   }
   async isWorkspacePublic(workspaceId: string) {
     const workspace = await db.select().from(table.workspace).where(eq(table.workspace.id, workspaceId)).limit(1);

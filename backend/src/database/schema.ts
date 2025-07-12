@@ -110,6 +110,7 @@ export const documents = pgTable("document", {
   savingPath: text('saving_path'),
   // embedding: vector('embedding', { dimensions: 1536 }),
   // embedder: text('embedder'),
+  summary: text('summary').notNull().$defaultFn(() => ''),
   chunkIds: text('chunk_ids').notNull().array().notNull().$defaultFn(() => []),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

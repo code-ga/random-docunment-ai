@@ -135,7 +135,7 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
         )
         .put("/update/:id", async (ctx) => {
           const { id } = ctx.params;
-          const { name, description } = ctx.body;
+          const { name, description , public: isPublic} = ctx.body;
           const alreadyWorkspace = await ctx.workspaceService.getWorkspaceById(id);
           if (!alreadyWorkspace.length || !alreadyWorkspace[0]) {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
@@ -143,7 +143,7 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
           if (alreadyWorkspace[0].userId !== ctx.user.id) {
             return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
           }
-          const workspace = await ctx.workspaceService.updateWorkspace(id, name, description);
+          const workspace = await ctx.workspaceService.updateWorkspace(id, name, description, isPublic);
           return {
             status: 200,
             message: "Workspace updated successfully",
@@ -161,6 +161,7 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
             body: t.Object({
               name: t.Optional(t.String()),
               description: t.Optional(t.String()),
+              public: t.Optional(t.Boolean()),
             }),
             response: {
               200: baseResponseType(t.Object({ workspace: t.Array(workspaceSelectType) })),

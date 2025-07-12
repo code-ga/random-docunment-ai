@@ -1,18 +1,20 @@
 import { useState } from "react";
 
+export type UpdatedWorkspace = {
+  name: string;
+  description: string;
+  public: boolean;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
   workspace: {
     name: string;
-    description?: string;
+    description?: string | null;
     public: boolean;
   };
-  onSave: (updated: {
-    name: string;
-    description: string;
-    public: boolean;
-  }) => void;
+  onSave: (updated: UpdatedWorkspace) => void;
 };
 
 export default function EditWorkspaceModal({

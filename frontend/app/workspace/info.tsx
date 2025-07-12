@@ -9,39 +9,29 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
-import EditWorkspaceModal from "../components/Workspace/EditWorkspaceModal";
+import EditWorkspaceModal, {
+  type UpdatedWorkspace,
+} from "../components/Workspace/EditWorkspaceModal";
 import ViewDocumentModal from "../components/ViewDocumentModal";
 import EditDocumentModal from "../components/EditDocumentModal";
 import AddDocumentModal from "../components/AddDocumentModal";
-
-type Document = {
-  id: string;
-  title: string;
-  workspaceId: string;
-  savingPath?: string;
-  chunkIds: string[];
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  content?: string;
-};
-
-type Workspace = {
-  id: string;
-  name: string;
-  description?: string;
-  public: boolean;
-  userId: string;
-  documentIds: string[];
-  createdAt: string;
-  updatedAt: string;
-};
+import { client } from "../lib/client";
+import ErrorPage from "../components/ErrorPage";
+import type { Workspace, Document } from "@/index";
+import LoadingPage from "../components/LoadingPage";
 
 export default function WorkspaceInfoPage() {
   const { id } = useParams();
+  if (!id)
+    return <ErrorPage message="Workspace not found" status={404}></ErrorPage>;
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<{
+    message: string;
+    status: number;
+  } | null>();
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [editDoc, setEditDoc] = useState<Document | null>(null);
   const [showAddPopup, setShowAddPopup] = useState(false);
@@ -51,47 +41,82 @@ export default function WorkspaceInfoPage() {
     const fetchWorkspace = async () => {
       setLoading(true);
 
-      const mockWorkspace: Workspace = {
-        id: id || "ws1",
-        name: "AI Research Notes",
-        userId: "user1",
-        public: true,
-        description: "Notes and papers on deep learning",
-        documentIds: ["doc1", "doc2"],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const mockWorkspace = await client.api.workspace({ id: id || "" }).get();
 
-      const mockDocuments: Document[] = [
-        {
-          id: "doc1",
-          title: "Transformer Paper Summary",
-          workspaceId: mockWorkspace.id,
-          savingPath: "/documents/transformer.pdf",
-          chunkIds: ["chunk1", "chunk2"],
-          userId: "user1",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          content:
-            "This is the content of the Transformer Paper Summary document.",
-        },
-        {
-          id: "doc2",
-          title: "GPT Fine-tuning Guide",
-          workspaceId: mockWorkspace.id,
-          savingPath: "/documents/gpt-finetune.pdf",
-          chunkIds: [],
-          userId: "user1",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          content:
-            "This is a guide to fine-tuning GPT models on your own datasets.",
-        },
-      ];
+      if (mockWorkspace.error) {
+        setLoading(false);
+        setError({
+          message: mockWorkspace.error.value.message || "Something went wrong.",
+          status: mockWorkspace.error.status,
+        });
+        return;
+      }
+      if (!mockWorkspace.data.data) {
+        setLoading(false);
+        setError({
+          message: mockWorkspace.data.message,
+          status: mockWorkspace.data.status,
+        });
+        return;
+      }
+      if (!mockWorkspace.data.success) {
+        setLoading(false);
+        setError({
+          message: mockWorkspace.data.message || "Something went wrong.",
+          status: mockWorkspace.data.status,
+        });
+        return;
+      }
 
-      await new Promise((res) => setTimeout(res, 500));
-      setWorkspace(mockWorkspace);
-      setDocuments(mockDocuments);
+      const mockDocuments = await client.api.document
+        .list({
+          id: mockWorkspace.data.data.workspace.id,
+        })
+        .get();
+      if (mockDocuments.error) {
+        setLoading(false);
+        setError({
+          message: mockDocuments.error.value.message || "Something went wrong.",
+          status: mockDocuments.error.status,
+        });
+        return;
+      }
+      if (!mockDocuments.data.data) {
+        setLoading(false);
+        setError({
+          message: mockDocuments.data.message,
+          status: mockDocuments.data.status,
+        });
+        return;
+      }
+      if (!mockDocuments.data.success) {
+        setLoading(false);
+        setError({
+          message: mockDocuments.data.message || "Something went wrong.",
+          status: mockDocuments.data.status,
+        });
+        return;
+      }
+      // await new Promise((res) => setTimeout(res, 500));
+      const chatSocket = client.api.chats
+        .chat({
+          workspaceId: mockWorkspace.data.data.workspace.id || "",
+        })
+        .subscribe();
+      chatSocket.on("message", (message) => {
+        console.log("message", message);
+      });
+      chatSocket.on("open", () => {
+        console.log("open");
+      });
+      chatSocket.on("close", () => {
+        console.log("close");
+      });
+      chatSocket.on("error", () => {
+        console.log("error");
+      });
+      setWorkspace(mockWorkspace.data.data.workspace);
+      setDocuments(mockDocuments.data.data.documents || []);
       setLoading(false);
     };
 
@@ -111,19 +136,90 @@ export default function WorkspaceInfoPage() {
     }
   };
 
-  const handleAddDocument = (title: string) => {
-    const newDoc: Document = {
-      id: Math.random().toString(36).substring(2),
-      title: title || "Untitled Document",
-      workspaceId: workspace!.id,
-      chunkIds: [],
-      userId: workspace!.userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      content: "New document content...",
-    };
-    setDocuments((docs) => [...docs, newDoc]);
+  const handleAddDocument = async (
+    title: string,
+    content?: string,
+    file?: File
+  ) => {
+    // const newDoc: Document = {
+    //   id: Math.random().toString(36).substring(2),
+    //   title: title || "Untitled Document",
+    //   workspaceId: workspace!.id,
+    //   chunkIds: [],
+    //   userId: workspace!.userId,
+    //   createdAt: new Date().toISOString(),
+    //   updatedAt: new Date().toISOString(),
+    //   content: "New document content...",
+    // };
+    // setDocuments((docs) => [...docs, newDoc]);
+    const result = content
+      ? await client.api.document
+          .create({ id: workspace!.id })
+          ["from-raw"].post({ name: title, content })
+      : file
+      ? await client.api.document
+          .create({
+            id: workspace!.id,
+          })
+          ["from-file"].post({ name: title, file })
+      : null;
+    if (!result) {
+      setError({
+        message: "Failed to create document",
+        status: 500,
+      });
+      return;
+    }
+    if (result.error) {
+      setError({
+        message: result.error.value.message || "Something went wrong.",
+        status: result.error.status,
+      });
+      return;
+    }
+    if (!result.data.success || !result.data.data) {
+      setError({
+        message: result.data.message || "Something went wrong.",
+        status: result.data.status,
+      });
+      return;
+    }
+
+    setDocuments((docs) => [...docs, ...(result.data.data?.document || [])]);
   };
+  const handleUpdateWorkspace = async (updated: UpdatedWorkspace) => {
+    if (!workspace) return;
+    const result = await client.api.workspace
+      .update({ id: workspace.id })
+      .put({ ...updated });
+    if (!result) {
+      setError({
+        message: "Failed to update workspace",
+        status: 500,
+      });
+      return;
+    }
+    if (result.error) {
+      setError({
+        message: result.error.value.message || "Something went wrong.",
+        status: result.error.status,
+      });
+      return;
+    }
+    if (!result.data.success || !result.data.data) {
+      setError({
+        message: result.data.message || "Something went wrong.",
+        status: result.data.status,
+      });
+      return;
+    }
+    setWorkspace((prev) => (prev ? { ...prev, ...updated } : null));
+  };
+  if (loading) return <LoadingPage></LoadingPage>;
+  if (error)
+    return (
+      <ErrorPage message={error.message} status={error.status}></ErrorPage>
+    );
 
   return (
     <div className="bg-[#0f172a] min-h-screen px-6 py-10 text-white">
@@ -232,13 +328,7 @@ export default function WorkspaceInfoPage() {
             description: workspace.description,
             public: workspace.public,
           }}
-          onSave={(updated) => {
-            setWorkspace((prev) =>
-              prev
-                ? { ...prev, ...updated, updatedAt: new Date().toISOString() }
-                : null
-            );
-          }}
+          onSave={handleUpdateWorkspace}
         />
       )}
     </div>

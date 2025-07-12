@@ -1,16 +1,5 @@
 import { useState, useEffect } from "react";
-
-interface Document {
-  id: string;
-  title: string;
-  workspaceId: string;
-  savingPath?: string;
-  chunkIds: string[];
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  content?: string;
-}
+import type { Document } from "@/index";
 
 interface EditDocumentModalProps {
   document: Document | null;
@@ -18,7 +7,11 @@ interface EditDocumentModalProps {
   onSave: (title: string) => void;
 }
 
-export default function EditDocumentModal({ document, onClose, onSave }: EditDocumentModalProps) {
+export default function EditDocumentModal({
+  document,
+  onClose,
+  onSave,
+}: EditDocumentModalProps) {
   const [title, setTitle] = useState("");
 
   useEffect(() => {

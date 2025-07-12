@@ -1,21 +1,17 @@
-interface Document {
-  id: string;
-  title: string;
-  workspaceId: string;
-  savingPath?: string;
-  chunkIds: string[];
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  content?: string;
-}
-
+import type { Document } from "@/index";
 interface ViewDocumentModalProps {
   document: Document | null;
   onClose: () => void;
 }
 
-export default function ViewDocumentModal({ document, onClose }: ViewDocumentModalProps) {
+function getSavingPath(savingPath?: string) {
+  return savingPath;
+}
+
+export default function ViewDocumentModal({
+  document,
+  onClose,
+}: ViewDocumentModalProps) {
   if (!document) return null;
 
   return (
@@ -23,7 +19,8 @@ export default function ViewDocumentModal({ document, onClose }: ViewDocumentMod
       <div className="bg-[#1e293b] w-full max-w-lg rounded-xl p-6 shadow-lg relative">
         <h2 className="text-xl font-semibold mb-4">{document.title}</h2>
         <p className="text-sm text-gray-300 whitespace-pre-wrap">
-          {document.content}
+          {document.summary}{" "}
+          {document.savingPath && `(${getSavingPath(document.savingPath)})`}
         </p>
         <button
           onClick={onClose}
