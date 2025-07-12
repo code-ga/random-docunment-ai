@@ -17,7 +17,13 @@ const WorkspaceList = ({ workspaces }: Props) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
       {workspaces.map((ws) => (
-        <WorkspaceCard key={ws.id} workspace={ws} />
+        <WorkspaceCard
+          key={ws.id}
+          workspace={ws}
+          onDelete={(workspaceId) =>
+            console.log(`Deleted workspace with ID: ${workspaceId}`)
+          }
+        />
       ))}
     </div>
   );

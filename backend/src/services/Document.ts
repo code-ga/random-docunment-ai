@@ -14,6 +14,14 @@ export class DocumentService {
     // because id is unique so it will return only one
     return await db.select().from(table.documents).where(eq(table.documents.id, id)).limit(1);
   }
+  async getFullDocumentWithChunkById(id: string) {
+    return await db
+      .select()
+      .from(table.documents)
+      .where(eq(table.documents.id, id))
+      .limit(1)
+      .fullJoin(table.chunks, eq(table.chunks.documentId, table.documents.id));
+  }
   async getDocumentsByWorkspaceId(workspaceId: string) {
     return await db.select().from(table.documents).where(eq(table.documents.workspaceId, workspaceId));
   }

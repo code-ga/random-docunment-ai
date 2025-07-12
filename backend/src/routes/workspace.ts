@@ -60,9 +60,6 @@ export const workspaceRouter = new Elysia({ prefix: "/workspace", name: "workspa
         .get("/list-workspace", async ctx => {
           const { id } = ctx.user;
           const workspace = await ctx.workspaceService.getWorkspacesByUserId(id);
-          if (!workspace.length) {
-            return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
-          }
           return {
             status: 200,
             message: "Workspace fetched successfully",

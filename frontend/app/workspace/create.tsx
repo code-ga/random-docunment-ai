@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fetch } from "../lib/client";
+import { client, fetch } from "../lib/client";
 import { useNavigate } from "react-router";
 
 export default function CreateWorkspaceForm() {
@@ -34,16 +34,10 @@ export default function CreateWorkspaceForm() {
       //     resolve(true);
       //   }, 1000);
       // });
-      const result = await fetch("/api/workspace/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: payload,
-      });
+      const result = await client.api.workspace.create.post(payload);
 
       if (result.error) {
-        setError(result.error.message);
+        setError(result.error.value.message || "Something went wrong.");
         return;
       }
 
@@ -52,7 +46,7 @@ export default function CreateWorkspaceForm() {
         return;
       }
 
-      redirect("/workspace/" + result.data.data.workspace[0].id);
+      redirect("/dashboard/workspace/" + result.data.data.workspace[0].id);
 
       setSuccess(true);
       setName("");

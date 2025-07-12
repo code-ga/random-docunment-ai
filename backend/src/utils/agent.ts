@@ -2,6 +2,8 @@ import { Agent, setDefaultOpenAIClient, tool } from "@openai/agents";
 import OpenAI from "openai";
 import z from "zod";
 import { findSimilarDocuments } from "./embedding";
+import { eq } from "drizzle-orm";
+import { db, table } from "../database";
 const openai = new OpenAI({
   baseURL: process.env.OPENAI_API_BASE_URL!,
   apiKey: process.env.OPENAI_API_KEY!,
@@ -79,11 +81,19 @@ export const getAgent = (workspaceId: string) => {
       return await findSimilarDocuments(query, workspaceId);
     }
   })
+  const listKnowledgeBase = tool({
+    name: "list_knowledge_base",
+    description: "Use this tool to list documents.",
+    parameters: z.object({}),
+    async execute() {
+      return await db.select().from(table.documents).where(eq(table.documents.workspaceId, workspaceId));
+    }
+  })
   const agent = new Agent({
     name: "Study.ai",
     instructions,
     model: "deepseek-ai/DeepSeek-R1",
-    tools: [searchInKnowledgeBase],
+    tools: [searchInKnowledgeBase, listKnowledgeBase],
   });
   return agent
 }

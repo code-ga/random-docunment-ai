@@ -7,3 +7,5 @@ export const db = drizzle({
   schema: table,
 
 });
+// export table
+export * from "./schema";

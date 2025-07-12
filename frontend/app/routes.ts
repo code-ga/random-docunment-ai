@@ -9,6 +9,7 @@ export default [
       index("routes/dashboard/index.tsx"),
       ...prefix("workspace", [
         route("create", "routes/dashboard/workspace/create.tsx"),
+        route(":id", "routes/dashboard/workspace/info.tsx"),
       ])
     ]),
   ])

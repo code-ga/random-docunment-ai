@@ -5,6 +5,7 @@ import { chatService } from "../services/Chat";
 import { workspaceService } from "../services/Workspace";
 import { baseResponseType, chatSelectType } from "../types";
 import { getAgent } from "../utils/agent";
+import { auth } from "../libs/auth/auth";
 
 
 
@@ -81,59 +82,56 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           401: baseResponseType(t.Null()),
         },
       })
-      // Create chat
-      .post("/chat/:workspaceId", async function* handleChat(ctx) {
-        const { id: userId } = ctx.user;
-        const { workspaceId } = ctx.params;
-        const { message, title, chatId } = ctx.body;
-        const workspacePublic = await ctx.workspaceService.isWorkspacePublic(workspaceId);
-        if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
-          return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
-        }
-        if (workspacePublic.type == "Private" && workspacePublic.userID !== userId) {
-          return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
-        }
-        if (chatId) {
-          const chat = await ctx.chatService.getChatById(chatId);
-          if (!chat) {
-            return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
-          }
-          if (chat.userId !== userId) {
-            return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
-          }
-          const response = await run(getAgent(workspaceId), message, { stream: true });
-          for await (const chunk of response) {
-            yield chunk
-          }
-        } else {
-          const chat = await ctx.chatService.createChat(userId, workspaceId, title);
-          if (!chat || chat.length === 0 || !chat[0]) {
-            return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
-          }
-          // return {
-          //   status: 200,
-          //   message: "Chat created successfully",
-          //   success: true,
-          //   type: "success",
-          //   data: { chat }
-          // };
-          yield ({ status: 200, message: "Chat created successfully", success: true, type: "success", data: { chatId: chat[0].id } })
-          const response = await run(getAgent(workspaceId), message, { stream: true });
-          for await (const chunk of response) {
-            yield chunk
-          }
-        }
-        yield ({ status: 200, message: "Completed", success: true, type: "success", data: {} })
-      }, {
-        params: t.Object({
-          workspaceId: t.String({ description: "Workspace id" })
-        }),
-        body: t.Object({
-          message: t.String(),
-          title: t.Optional(t.String()),
-          chatId: t.Optional(t.String())
-        }),
-      })
+      // // Create chat
+      // .post("/chat/:workspaceId", async function* handleChat(ctx) {
+      //   const { id: userId } = ctx.user;
+      //   const { workspaceId } = ctx.params;
+      //   const { message, title, chatId } = ctx.body;
+
+      //   if (workspacePublic.type == "Private" && workspacePublic.userID !== userId) {
+      //     return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
+      //   }
+      //   if (chatId) {
+      //     const chat = await ctx.chatService.getChatById(chatId);
+      //     if (!chat) {
+      //       return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
+      //     }
+      //     if (chat.userId !== userId) {
+      //       return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
+      //     }
+      //     const response = await run(getAgent(workspaceId), message, { stream: true });
+      //     for await (const chunk of response) {
+      //       yield chunk
+      //     }
+      //   } else {
+      //     const chat = await ctx.chatService.createChat(userId, workspaceId, title);
+      //     if (!chat || chat.length === 0 || !chat[0]) {
+      //       return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
+      //     }
+      //     // return {
+      //     //   status: 200,
+      //     //   message: "Chat created successfully",
+      //     //   success: true,
+      //     //   type: "success",
+      //     //   data: { chat }
+      //     // };
+      //     yield ({ status: 200, message: "Chat created successfully", success: true, type: "success", data: { chatId: chat[0].id } })
+      //     const response = await run(getAgent(workspaceId), message, { stream: true });
+      //     for await (const chunk of response) {
+      //       yield chunk
+      //     }
+      //   }
+      //   yield ({ status: 200, message: "Completed", success: true, type: "success", data: {} })
+      // }, {
+      //   params: t.Object({
+      //     workspaceId: t.String({ description: "Workspace id" })
+      //   }),
+      //   body: t.Object({
+      //     message: t.String(),
+      //     title: t.Optional(t.String()),
+      //     chatId: t.Optional(t.String())
+      //   }),
+      // })
       // Update chat
       .put("/update/:id", async (ctx) => {
         const { id } = ctx.params;
@@ -194,6 +192,24 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           401: baseResponseType(t.Null()),
         },
       })
-  );
+  ).ws("/chat/:workspaceId", {
+    open: async (ctx) => {
+      const { workspaceId } = ctx.data.params;
+      // const user = await auth.api.getSession({ headers: ctx.data.headers });
+      console.log({ workspaceId, user: ctx.data.headers })
+      // const workspacePublic = await ctx.data.workspaceService.isWorkspacePublic(workspaceId);
+      // if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
+      //   ctx.send({ status: 404, type: "error", success: false, message: "Workspace not found" });
+      //   ctx.close();
+      //   return
+      // }
+
+      // if (workspacePublic.type == "Private" && workspacePublic.userID !== ctx.user.id) {
+      //   ctx.send({ status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
+      //   ctx.close();
+      //   return
+      // }
+    }
+  });
 
 

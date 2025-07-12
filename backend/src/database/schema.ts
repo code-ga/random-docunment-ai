@@ -67,6 +67,7 @@ export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   workspaces: many(workspace),
   documents: many(documents),
+  chunks: many(chunks),
 }))
 
 export const accountRelations = relations(account, ({ one }) => ({
@@ -167,13 +168,30 @@ export const messages = pgTable('messages', {
   // tokens: integer('tokens'), // Optional: for tracking usage
 });
 
-export const documentRelations = relations(documents, ({ one }) => ({
+
+export const documentRelations = relations(documents, ({ one, many }) => ({
   workspace: one(workspace, {
     fields: [documents.workspaceId],
     references: [workspace.id],
   }),
   user: one(user, {
     fields: [documents.userId],
+    references: [user.id],
+  }),
+  chunks: many(chunks),
+}))
+
+export const chunkRelations = relations(chunks, ({ one }) => ({
+  document: one(documents, {
+    fields: [chunks.documentId],
+    references: [documents.id],
+  }),
+  workspace: one(workspace, {
+    fields: [chunks.workspaceId],
+    references: [workspace.id],
+  }),
+  user: one(user, {
+    fields: [chunks.userId],
     references: [user.id],
   }),
 }))
