@@ -1,27 +1,21 @@
+import type { Document, Workspace } from "@/index";
+import { Eye, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import {
-  Globe2,
-  Lock,
-  FileText,
-  Eye,
-  Trash2,
-  Pencil,
-  Plus,
-} from "lucide-react";
+import AddDocumentModal from "../components/AddDocumentModal";
+import EditDocumentModal from "../components/EditDocumentModal";
+import ErrorPage from "../components/ErrorPage";
+import LoadingPage from "../components/LoadingPage";
+import ViewDocumentModal from "../components/ViewDocumentModal";
 import EditWorkspaceModal, {
   type UpdatedWorkspace,
 } from "../components/Workspace/EditWorkspaceModal";
-import ViewDocumentModal from "../components/ViewDocumentModal";
-import EditDocumentModal from "../components/EditDocumentModal";
-import AddDocumentModal from "../components/AddDocumentModal";
 import { client } from "../lib/client";
-import ErrorPage from "../components/ErrorPage";
-import type { Workspace, Document } from "@/index";
-import LoadingPage from "../components/LoadingPage";
+import authClient, { useSession } from "../lib/auth";
 
 export default function WorkspaceInfoPage() {
   const { id } = useParams();
+
   if (!id)
     return <ErrorPage message="Workspace not found" status={404}></ErrorPage>;
 
@@ -36,6 +30,7 @@ export default function WorkspaceInfoPage() {
   const [editDoc, setEditDoc] = useState<Document | null>(null);
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const { data } = useSession();
 
   useEffect(() => {
     const fetchWorkspace = async () => {
@@ -106,7 +101,12 @@ export default function WorkspaceInfoPage() {
       chatSocket.on("message", (message) => {
         console.log("message", message);
       });
-      chatSocket.on("open", () => {
+      chatSocket.on("open", (ws) => {
+        console.log(data?.session.token);
+        chatSocket.send({
+          type: "AUTH",
+          data: {},
+        });
         console.log("open");
       });
       chatSocket.on("close", () => {

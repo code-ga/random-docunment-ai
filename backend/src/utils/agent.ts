@@ -70,7 +70,7 @@ Your priority is to assist the user in learning through verified facts, memory s
 
 `
 
-export const getAgent = (workspaceId: string) => {
+export const getAgent = (workspaceId: string, chatId: string) => {
   const searchInKnowledgeBase = tool({
     name: "search_in_knowledge_base",
     description: "Use this tool to answer questions about documents.",
@@ -89,11 +89,59 @@ export const getAgent = (workspaceId: string) => {
       return await db.select().from(table.documents).where(eq(table.documents.workspaceId, workspaceId));
     }
   })
+
+  const changeChatName = tool({
+    name: "change_chat_id",
+    description: "Use this tool to change the chat id.",
+    parameters: z.object({
+      chatId: z.string(),
+      chatName: z.string()
+    }),
+    async execute({ chatId, chatName }) {
+      return await db.update(table.chats).set({ title: chatName }).where(eq(table.chats.id, chatId));
+    }
+  })
+  const getChatInfo = tool({
+    name: "get_chat_info",
+    description: "Use this tool to get chat info.",
+    parameters: z.object({
+      chatId: z.string()
+    }),
+    async execute({ chatId }) {
+      return await db.select().from(table.chats).where(eq(table.chats.id, chatId));
+    }
+  })
+  const getWorkspaceInfo = tool({
+    name: "get_workspace_info",
+    description: "Use this tool to get workspace info.",
+    parameters: z.object({}),
+    async execute() {
+      return await db.select().from(table.workspace).where(eq(table.workspace.id, workspaceId));
+    }
+  })
+  const getDocumentInfo = tool({
+    name: "get_document_info",
+    description: "Use this tool to get document info.",
+    parameters: z.object({
+      documentId: z.string()
+    }),
+    async execute({ documentId }) {
+      return await db.select().from(table.documents).where(eq(table.documents.id, documentId));
+    }
+  })
+  const getCurrentChatInfo = tool({
+    name: "get_current_chat_info",
+    description: "Use this tool to get current chat info.",
+    parameters: z.object({}),
+    async execute() {
+      return await db.select().from(table.chats).where(eq(table.chats.id, chatId));
+    }
+  })
   const agent = new Agent({
     name: "Study.ai",
     instructions,
     model: "deepseek-ai/DeepSeek-R1",
-    tools: [searchInKnowledgeBase, listKnowledgeBase],
+    tools: [searchInKnowledgeBase, listKnowledgeBase, changeChatName, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo],
   });
   return agent
 }
