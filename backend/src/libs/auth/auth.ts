@@ -67,7 +67,7 @@ export const auth = betterAuth({
 
 export const getSessionFromToken = async (token: string) => {
   const headers = new Headers();
-  headers.append("Cookie", `better-auth.session-token=${token}`);
+  headers.getSetCookie().push(`better-auth.session-token=${token}`);
   const session = await auth.api.getSession({ headers: headers });
   return session;
 }

@@ -94,6 +94,9 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           if (!document) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "Document not created" });
           }
+          if ("error" in document) {
+            return ctx.status(400, { status: 400, type: "error", success: false, message: document.error });
+          }
           return {
             status: 200,
             message: "Document created successfully",
@@ -135,6 +138,9 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           if (!document) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "Document not created" });
           }
+          if ("error" in document) {
+            return ctx.status(400, { status: 400, type: "error", success: false, message: document.error });
+          }
           return {
             status: 200,
             message: "Document created successfully",
@@ -164,6 +170,51 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
               400: baseResponseType(t.Null()),
             },
           }
+        )
+        .post("/create/:id/from-files", async (ctx) => {
+          const { id } = ctx.user;
+          const { id: workspaceId } = ctx.params;
+          const { files } = ctx.body;
+          if (!files.every(file => isPdfOrDocx(file.type))) {
+            return ctx.status(400, { status: 400, type: "error", success: false, message: "Invalid file type" });
+          }
+          const documentCreated = await Promise.all(files.map(async (file) => {
+            const content = await getContentOfFile(file);
+            return { name: file.name, document: await ctx.documentService.createDocument(id, workspaceId, content, undefined, file.name) };
+          }))
+
+          return {
+            status: 200,
+            message: "Document created successfully",
+            success: true,
+            type: "success",
+            data: {
+              document: documentCreated
+            }
+          }
+        },
+          {
+            params: t.Object({
+              id: t.String(
+                {
+                  description: "Workspace id"
+                }
+              )
+            }),
+            body: t.Object({
+              files: t.Array(t.File())
+            }),
+            response: {
+              200: baseResponseType(t.Object({
+                document: t.Array(t.Object({
+                  name: t.String(),
+                  document: t.Union([t.Array(documentSelectType), t.Object({ error: t.String() })])
+                }))
+              })),
+              400: baseResponseType(t.Null()),
+            },
+          }
+
         )
         .put("/update/:id", async (ctx) => {
           const { id } = ctx.params;

@@ -202,7 +202,6 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
     open: async (ctx) => {
       const { workspaceId } = ctx.data.params;
 
-      console.log({ workspaceId, user: ctx.data.headers, cookies: ctx.data.cookie });
       const workspacePublic = await ctx.data.workspaceService.isWorkspacePublic(workspaceId);
       if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
         ctx.send({ status: 404, type: "error", success: false, message: "Workspace not found" });

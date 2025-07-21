@@ -35,7 +35,9 @@ export class DocumentService {
         .returning();
       if (!document || !document[0]) {
         db.rollback()
-        return
+        return {
+          error: "Failed to create document"
+        }
       }
       for (let i = 0; i < chunk.length; i++) {
         const chunkContent = chunk[i];
@@ -56,7 +58,9 @@ export class DocumentService {
           .returning();
         if (!insert || !insert[0]) {
           db.rollback()
-          return
+          return {
+            error: "Failed to create chunk at index " + i + " of document " + document[0]?.id
+          }
         }
         chunkIDs.push(insert[0].id);
       }

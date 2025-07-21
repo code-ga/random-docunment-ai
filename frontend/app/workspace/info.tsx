@@ -12,6 +12,7 @@ import EditWorkspaceModal, {
 } from "../components/Workspace/EditWorkspaceModal";
 import { client } from "../lib/client";
 import authClient, { useSession } from "../lib/auth";
+import AddDocumentsModal from "../components/AddDocumentsModal";
 
 export default function WorkspaceInfoPage() {
   const { id } = useParams();
@@ -29,6 +30,7 @@ export default function WorkspaceInfoPage() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [editDoc, setEditDoc] = useState<Document | null>(null);
   const [showAddPopup, setShowAddPopup] = useState(false);
+  const [showAddMultiplePopup, setShowAddMultiplePopup] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const { data } = useSession();
 
@@ -105,7 +107,9 @@ export default function WorkspaceInfoPage() {
         console.log(data?.session.token);
         chatSocket.send({
           type: "AUTH",
-          data: {},
+          data: {
+            token: encodeURIComponent(data?.session.token || ""),
+          },
         });
         console.log("open");
       });
@@ -187,6 +191,7 @@ export default function WorkspaceInfoPage() {
 
     setDocuments((docs) => [...docs, ...(result.data.data?.document || [])]);
   };
+  const handleAddDocuments = async (files: File[]) => {};
   const handleUpdateWorkspace = async (updated: UpdatedWorkspace) => {
     if (!workspace) return;
     const result = await client.api.workspace
@@ -251,13 +256,23 @@ export default function WorkspaceInfoPage() {
         )}
 
         {/* Add Document Button */}
-        <button
-          onClick={() => setShowAddPopup(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Document
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowAddPopup(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Document
+          </button>{" "}
+          <button
+            onClick={() => setShowAddMultiplePopup(true)}
+            disabled
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-4 h-4" />
+            Add Documents
+          </button>
+        </div>
 
         {/* Document List */}
         <div className="space-y-4">
@@ -318,6 +333,12 @@ export default function WorkspaceInfoPage() {
         isOpen={showAddPopup}
         onClose={() => setShowAddPopup(false)}
         onAdd={handleAddDocument}
+      />
+
+      <AddDocumentsModal
+        isOpen={showAddMultiplePopup}
+        onClose={() => setShowAddMultiplePopup(false)}
+        onAdd={handleAddDocuments}
       />
       {showEditModal && workspace && (
         <EditWorkspaceModal
