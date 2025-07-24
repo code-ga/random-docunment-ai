@@ -1,14 +1,15 @@
-import { Agent, setDefaultOpenAIClient, tool } from "@openai/agents";
-import OpenAI from "openai";
-import z from "zod";
-import { findSimilarDocuments } from "./embedding";
+import { createXai } from '@ai-sdk/xai';
+import { Agent, tool } from "@openai/agents";
+import { aisdk } from '@openai/agents-extensions';
 import { eq } from "drizzle-orm";
+import z from "zod";
 import { db, table } from "../database";
-const openai = new OpenAI({
-  baseURL: process.env.OPENAI_API_BASE_URL!,
-  apiKey: process.env.OPENAI_API_KEY!,
+import { findSimilarDocuments } from "./embedding";
+
+const xai = createXai({
+  apiKey: process.env.AI_API_KEY,
 });
-setDefaultOpenAIClient(openai);
+const model = aisdk(xai("grok-3-fast"));
 
 const instructions = `
 You are a highly accurate, neutral, and helpful AI assistant designed to help users learn by querying documents, asking quizzes, and providing reliable answers grounded in facts.
@@ -140,7 +141,7 @@ export const getAgent = (workspaceId: string, chatId: string) => {
   const agent = new Agent({
     name: "Study.ai",
     instructions,
-    model: "deepseek-ai/DeepSeek-R1",
+    model,
     tools: [searchInKnowledgeBase, listKnowledgeBase, changeChatName, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo],
   });
   return agent

@@ -58,7 +58,7 @@ export default function ChatBox({
 
     const connectWebSocket = () => {
       try {
-        const wsUrl = `wss://api-study-ai.nbth.id.vn/chats/chat/${workspaceId}`;
+        const wsUrl = `ws://api-study-ai.nbth.id.vn/api/chats/chat/${workspaceId}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
