@@ -1,8 +1,10 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, createLogger, Logger } from "better-auth";
 import { openAPI } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../../database";
-import { account, session, user, verification } from "../../database/schema";
+import { account, session as sessions, user, verification } from "../../database/schema";
+import { eq } from "drizzle-orm";
+const logger = createLogger({ level: "debug" })
 export const auth = betterAuth({
   database: drizzleAdapter(db, { // We're using Drizzle as our database
     provider: "pg",
@@ -11,7 +13,7 @@ export const auth = betterAuth({
     */
     schema: {
       user,
-      session,
+      session: sessions,
       verification,
       account,
     },
@@ -62,12 +64,26 @@ export const auth = betterAuth({
         }
       },
     }
+  },
+  logger: {
+    log(level, message, ...args) {
+      logger[level](message, ...args);
+    },
   }
 });
 
 export const getSessionFromToken = async (token: string) => {
   const headers = new Headers();
-  headers.getSetCookie().push(`better-auth.session-token=${token}`);
-  const session = await auth.api.getSession({ headers: headers });
-  return session;
+  headers.set("Cookie", `better-auth.session-token=${token}`);
+  const sessionQuery = await db.select().from(sessions).where(eq(sessions.token, token)).leftJoin(user, eq(sessions.userId, user.id));
+  if (!sessionQuery.length || !sessionQuery[0]) {
+    return null;
+  }
+  if (!sessionQuery[0].user) {
+    return null;
+  }
+  return {
+    user: sessionQuery[0].user,
+    session: sessionQuery[0].session
+  };
 }

@@ -13,6 +13,8 @@ import EditWorkspaceModal, {
 import { client } from "../lib/client";
 import authClient, { useSession } from "../lib/auth";
 import AddDocumentsModal from "../components/AddDocumentsModal";
+import ChatBox from "../components/Chat/ChatBox";
+import ChatList from "../components/Chat/ChatList";
 
 export default function WorkspaceInfoPage() {
   const { id } = useParams();
@@ -32,6 +34,8 @@ export default function WorkspaceInfoPage() {
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showAddMultiplePopup, setShowAddMultiplePopup] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [newChat, setNewChat] = useState<any>(null);
   const { data } = useSession();
 
   useEffect(() => {
@@ -94,31 +98,7 @@ export default function WorkspaceInfoPage() {
         });
         return;
       }
-      // await new Promise((res) => setTimeout(res, 500));
-      const chatSocket = client.api.chats
-        .chat({
-          workspaceId: mockWorkspace.data.data.workspace.id || "",
-        })
-        .subscribe();
-      chatSocket.on("message", (message) => {
-        console.log("message", message);
-      });
-      chatSocket.on("open", (ws) => {
-        console.log(data?.session.token);
-        chatSocket.send({
-          type: "AUTH",
-          data: {
-            token: encodeURIComponent(data?.session.token || ""),
-          },
-        });
-        console.log("open");
-      });
-      chatSocket.on("close", () => {
-        console.log("close");
-      });
-      chatSocket.on("error", () => {
-        console.log("error");
-      });
+
       setWorkspace(mockWorkspace.data.data.workspace);
       setDocuments(mockDocuments.data.data.documents || []);
       setLoading(false);
@@ -145,17 +125,6 @@ export default function WorkspaceInfoPage() {
     content?: string,
     file?: File
   ) => {
-    // const newDoc: Document = {
-    //   id: Math.random().toString(36).substring(2),
-    //   title: title || "Untitled Document",
-    //   workspaceId: workspace!.id,
-    //   chunkIds: [],
-    //   userId: workspace!.userId,
-    //   createdAt: new Date().toISOString(),
-    //   updatedAt: new Date().toISOString(),
-    //   content: "New document content...",
-    // };
-    // setDocuments((docs) => [...docs, newDoc]);
     const result = content
       ? await client.api.document
           .create({ id: workspace!.id })
@@ -191,7 +160,9 @@ export default function WorkspaceInfoPage() {
 
     setDocuments((docs) => [...docs, ...(result.data.data?.document || [])]);
   };
+
   const handleAddDocuments = async (files: File[]) => {};
+
   const handleUpdateWorkspace = async (updated: UpdatedWorkspace) => {
     if (!workspace) return;
     const result = await client.api.workspace
@@ -220,6 +191,7 @@ export default function WorkspaceInfoPage() {
     }
     setWorkspace((prev) => (prev ? { ...prev, ...updated } : null));
   };
+
   if (loading) return <LoadingPage></LoadingPage>;
   if (error)
     return (
@@ -227,15 +199,14 @@ export default function WorkspaceInfoPage() {
     );
 
   return (
-    <div className="bg-[#0f172a] min-h-screen px-6 py-10 text-white">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="bg-[#0f172a] min-h-screen px-6 py-2 text-white">
+      <div className=" mx-auto space-y-8">
         {/* Workspace Header */}
         {workspace && (
-          <div className="bg-[#1e293b] p-6 rounded-2xl border border-gray-700 shadow-md">
+          <div className="bg-[#1e293b] p-3 px-6 rounded-2xl border border-gray-700 shadow-md">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <h1 className="text-3xl font-bold">{workspace.name}</h1>
-                {/* <Pencil className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" /> */}
               </div>
               <div className="flex items-center gap-4">
                 <button
@@ -255,65 +226,117 @@ export default function WorkspaceInfoPage() {
           </div>
         )}
 
-        {/* Add Document Button */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowAddPopup(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
-          >
-            <Plus className="w-4 h-4" />
-            Add Document
-          </button>{" "}
-          <button
-            onClick={() => setShowAddMultiplePopup(true)}
-            disabled
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" />
-            Add Documents
-          </button>
-        </div>
+        <div className="flex gap-4">
+          {/* Documents Section - Left Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            {/* Add Document Button */}
+            <div className="flex flex-col gap-2 mb-4">
+              <button
+                onClick={() => setShowAddPopup(true)}
+                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-semibold transition"
+              >
+                <Plus className="w-4 h-4" />
+                Add Document
+              </button>
+              <button
+                onClick={() => setShowAddMultiplePopup(true)}
+                disabled
+                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                Add Documents
+              </button>
+            </div>
 
-        {/* Document List */}
-        <div className="space-y-4">
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-[#1e293b] p-4 rounded-lg border border-gray-700 flex justify-between items-center hover:border-blue-500 transition"
-            >
-              <div>
-                <div className="font-medium text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  {doc.title}
-                </div>
-                <p className="text-xs text-gray-400">
-                  {doc.chunkIds.length} chunks •{" "}
-                  {new Date(doc.createdAt).toLocaleDateString()}
-                </p>
+            {/* Document List */}
+            <div className="bg-[#1e293b] rounded-lg border border-gray-700 min-h-[300px] overflow-y-auto">
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-400" />
+                  Documents ({documents.length})
+                </h3>
               </div>
-
-              <div className="flex gap-3 items-center">
-                <button
-                  onClick={() => setSelectedDoc(doc)}
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setEditDoc(doc)}
-                  className="text-yellow-400 hover:text-yellow-300"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  className="text-red-500 hover:text-red-400"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="p-2 space-y-2">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="bg-gray-800/50 p-3 rounded-lg border border-gray-700 hover:border-blue-500 transition"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-white text-sm truncate">
+                          {doc.title}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {doc.chunkIds.length} chunks
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(doc.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => setSelectedDoc(doc)}
+                          className="text-blue-400 hover:text-blue-300 p-1"
+                          title="View"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => setEditDoc(doc)}
+                          className="text-yellow-400 hover:text-yellow-300 p-1"
+                          title="Edit"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(doc.id)}
+                          className="text-red-500 hover:text-red-400 p-1"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {documents.length === 0 && (
+                  <div className="text-center text-gray-400 py-8">
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-gray-500" />
+                    <p className="text-sm">No documents yet</p>
+                    <p className="text-xs">Add documents to get started</p>
+                  </div>
+                )}
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Chat Box - Center (Largest) */}
+          <div className="flex-1 min-w-0">
+            <ChatBox
+              workspaceId={workspace?.id || ""}
+              selectedChatId={selectedChatId}
+              onChatCreated={(chat) => {
+                setNewChat(chat);
+                setSelectedChatId(chat.id);
+              }}
+              onChatSelected={setSelectedChatId}
+            />
+          </div>
+
+          {/* Chat History - Right Sidebar */}
+          <div className="w-72 flex-shrink-0">
+            <ChatList
+              workspaceId={workspace?.id || ""}
+              selectedChatId={selectedChatId}
+              onChatSelect={setSelectedChatId}
+              onNewChat={() => {
+                setSelectedChatId(null);
+                setNewChat(null);
+              }}
+              newChat={newChat}
+            />
+          </div>
         </div>
       </div>
 

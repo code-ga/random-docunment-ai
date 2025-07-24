@@ -272,10 +272,12 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
             ctx.close();
             return
           }
+          ctx.send({ status: 200, type: "success", success: true, message: "Chat fetched successfully", data: { chat, type: "CHAT_INFO" } });
           const response = await run(getAgent(chat.workspaceId, chatId), message, { stream: true });
           for await (const chunk of response.toStream()) {
             console.log(chunk);
-            ctx.send(chunk);
+            // ctx.send(chunk);
+            ctx.send({ status: 200, type: "success", success: true, message: "Message sent successfully", data: { message: chunk, type: "MESSAGE" } });
           }
         } else {
           const chat = await ctx.data.chatService.createChat(session.user.id, workspaceId, "New Chat");
@@ -284,10 +286,11 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
             ctx.close();
             return
           }
+          ctx.send({ status: 200, type: "success", success: true, message: "Chat created successfully", data: { chat, type: "CHAT_INFO" } });
           const response = await run(getAgent(workspaceId, chat[0].id), message, { stream: true });
           for await (const chunk of response.toStream()) {
             console.log(chunk);
-            ctx.send(chunk);
+            ctx.send({ status: 200, type: "success", success: true, message: "Message sent successfully", data: { message: chunk, type: "MESSAGE" } });
           }
         }
 

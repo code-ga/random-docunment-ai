@@ -1,0 +1,352 @@
+import { Send, Bot, User, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useSession } from "../../lib/auth";
+import { client } from "../../lib/client";
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+interface Chat {
+  id: string;
+  title: string;
+  userId: string;
+  workspaceId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface ChatBoxProps {
+  workspaceId: string;
+  selectedChatId?: string | null;
+  onChatCreated?: (chat: Chat) => void;
+  onChatSelected?: (chatId: string) => void;
+}
+
+export default function ChatBox({ 
+  workspaceId, 
+  selectedChatId, 
+  onChatCreated,
+  onChatSelected 
+}: ChatBoxProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [currentChat, setCurrentChat] = useState<Chat | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const { data: session } = useSession();
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    if (!session?.session.token || !workspaceId) return;
+
+    const connectWebSocket = () => {
+      try {
+        const wsUrl = `wss://api-study-ai.nbth.id.vn/chats/chat/${workspaceId}`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log("WebSocket connected");
+          setIsConnected(true);
+          setError(null);
+          
+          // Authenticate
+          ws.send(JSON.stringify({
+            type: "AUTH",
+            data: {
+              token: encodeURIComponent(session.session.token)
+            }
+          }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const response = JSON.parse(event.data);
+            console.log("WebSocket message:", response);
+
+            if (response.success && response.data) {
+              if (response.data.type === "CHAT_INFO") {
+                // Chat info received
+                const chat = response.data.chat;
+                setCurrentChat(chat);
+                if (onChatCreated) {
+                  onChatCreated(chat);
+                }
+                if (onChatSelected) {
+                  onChatSelected(chat.id);
+                }
+              } else if (response.data.type === "MESSAGE") {
+                // AI response chunk received
+                const chunk = response.data.message;
+                if (chunk && typeof chunk === 'string') {
+                  setMessages(prev => {
+                    const lastMessage = prev[prev.length - 1];
+                    if (lastMessage && lastMessage.role === 'assistant') {
+                      // Append to existing assistant message
+                      return prev.map((msg, index) => 
+                        index === prev.length - 1 
+                          ? { ...msg, content: msg.content + chunk }
+                          : msg
+                      );
+                    } else {
+                      // Create new assistant message
+                      return [...prev, {
+                        id: Date.now().toString(),
+                        role: 'assistant',
+                        content: chunk,
+                        timestamp: new Date()
+                      }];
+                    }
+                  });
+                }
+              }
+            } else if (!response.success) {
+              setError(response.message || "An error occurred");
+            }
+          } catch (err) {
+            console.error("Error parsing WebSocket message:", err);
+          }
+        };
+
+        ws.onclose = () => {
+          console.log("WebSocket disconnected");
+          setIsConnected(false);
+          // Attempt to reconnect after 3 seconds
+          setTimeout(connectWebSocket, 3000);
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          setError("Connection error occurred");
+          setIsConnected(false);
+        };
+      } catch (err) {
+        console.error("Error creating WebSocket:", err);
+        setError("Failed to connect to chat service");
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [session?.session.token, workspaceId]);
+
+  // Load existing chat when selectedChatId changes
+  useEffect(() => {
+    if (selectedChatId && selectedChatId !== currentChat?.id) {
+      loadChatMessages(selectedChatId);
+    }
+  }, [selectedChatId]);
+
+  const loadChatMessages = async (chatId: string) => {
+    try {
+      const response = await client.api.chats({ id: chatId }).get();
+      if (response.data?.success && response.data.data?.chat) {
+        // setCurrentChat(response.data.data.chat);
+        setCurrentChat({
+          ...response.data.data.chat,
+          createdAt: response.data.data.chat.createdAt?.toISOString(),
+          updatedAt: response.data.data.chat.updatedAt?.toISOString(),
+        });
+        // TODO: Load messages for this chat
+        // For now, we'll clear messages as the backend doesn't seem to have message loading endpoint
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error("Error loading chat:", err);
+      setError("Failed to load chat");
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !isConnected || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: inputMessage.trim(),
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage("");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: "CHAT",
+          data: {
+            message: userMessage.content,
+            chatId: selectedChatId
+          }
+        }));
+      } else {
+        throw new Error("WebSocket not connected");
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setError("Failed to send message");
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const startNewChat = () => {
+    setMessages([]);
+    setCurrentChat(null);
+    if (onChatSelected) {
+      onChatSelected("");
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[600px] bg-[#1e293b] rounded-lg border border-gray-700">
+      {/* Chat Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <Bot className="w-5 h-5 text-blue-400" />
+          <h3 className="font-semibold text-white">
+            {currentChat?.title || "AI Assistant"}
+          </h3>
+          {isConnected ? (
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          ) : (
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          )}
+        </div>
+        <button
+          onClick={startNewChat}
+          className="text-sm text-blue-400 hover:text-blue-300 px-3 py-1 rounded border border-blue-400 hover:border-blue-300 transition"
+        >
+          New Chat
+        </button>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="p-3 bg-red-900/50 border-b border-red-700 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <Bot className="w-12 h-12 mb-4 text-gray-500" />
+            <p className="text-lg font-medium">Start a conversation</p>
+            <p className="text-sm">Ask me anything about your documents</p>
+          </div>
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${
+                message.role === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
+              {message.role === "assistant" && (
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+              )}
+              
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-100"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{message.content}</p>
+                <p className="text-xs opacity-70 mt-1">
+                  {message.timestamp.toLocaleTimeString()}
+                </p>
+              </div>
+
+              {message.role === "user" && (
+                <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+          ))
+        )}
+        
+        {isLoading && (
+          <div className="flex gap-3 justify-start">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="bg-gray-700 text-gray-100 p-3 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Thinking...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex gap-2">
+          <textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask me anything about your documents..."
+            className="flex-1 bg-gray-800 text-white border border-gray-600 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-blue-500 transition"
+            rows={1}
+            disabled={!isConnected || isLoading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!inputMessage.trim() || !isConnected || isLoading}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition flex items-center justify-center"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Press Enter to send, Shift+Enter for new line
+        </p>
+      </div>
+    </div>
+  );
+}
