@@ -4,9 +4,10 @@ import { getSessionFromToken } from "../libs/auth/auth";
 import { userMiddleware } from "../middlewares/auth-middleware";
 import { chatService } from "../services/Chat";
 import { workspaceService } from "../services/Workspace";
-import { baseResponseType, chatSelectType } from "../types";
-import { run } from "@openai/agents";
+import { baseResponseType, chatSelectType, messageSelectType } from "../types";
+import { Agent, AgentInputItem, run, RunState, RunStreamEvent } from "@openai/agents";
 import { getAgent } from "../utils/agent";
+import { createId } from "@paralleldrive/cuid2";
 
 const messageType = z.union([
   z.object({ type: z.enum(["AUTH"]), data: z.object({ token: z.string() }) }),
@@ -87,57 +88,38 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           404: baseResponseType(t.Null()),
           401: baseResponseType(t.Null()),
         },
-      })
-      // // Create chat
-      // .post("/chat/:workspaceId", async function* handleChat(ctx) {
-      //   const { id: userId } = ctx.user;
-      //   const { workspaceId } = ctx.params;
-      //   const { message, title, chatId } = ctx.body;
+      }).get("/messages/:id", async (ctx) => {
+        const { id } = ctx.params;
+        const chat = await ctx.chatService.getChatById(id);
+        if (!chat) {
+          return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
+        }
+        const workspacePublic = await ctx.workspaceService.isWorkspacePublic(chat.workspaceId);
+        if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
+          return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
+        }
+        if (workspacePublic.type == "Private" && workspacePublic.userID !== ctx.user.id) {
+          return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
+        }
+        const messages = await ctx.chatService.getMessagesByChatId(id);
+        return {
+          status: 200,
+          message: "Messages fetched successfully",
+          success: true,
+          type: "success",
+          data: { messages }
+        };
 
-      //   if (workspacePublic.type == "Private" && workspacePublic.userID !== userId) {
-      //     return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
-      //   }
-      //   if (chatId) {
-      //     const chat = await ctx.chatService.getChatById(chatId);
-      //     if (!chat) {
-      //       return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
-      //     }
-      //     if (chat.userId !== userId) {
-      //       return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
-      //     }
-      //     const response = await run(getAgent(workspaceId), message, { stream: true });
-      //     for await (const chunk of response) {
-      //       yield chunk
-      //     }
-      //   } else {
-      //     const chat = await ctx.chatService.createChat(userId, workspaceId, title);
-      //     if (!chat || chat.length === 0 || !chat[0]) {
-      //       return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
-      //     }
-      //     // return {
-      //     //   status: 200,
-      //     //   message: "Chat created successfully",
-      //     //   success: true,
-      //     //   type: "success",
-      //     //   data: { chat }
-      //     // };
-      //     yield ({ status: 200, message: "Chat created successfully", success: true, type: "success", data: { chatId: chat[0].id } })
-      //     const response = await run(getAgent(workspaceId), message, { stream: true });
-      //     for await (const chunk of response) {
-      //       yield chunk
-      //     }
-      //   }
-      //   yield ({ status: 200, message: "Completed", success: true, type: "success", data: {} })
-      // }, {
-      //   params: t.Object({
-      //     workspaceId: t.String({ description: "Workspace id" })
-      //   }),
-      //   body: t.Object({
-      //     message: t.String(),
-      //     title: t.Optional(t.String()),
-      //     chatId: t.Optional(t.String())
-      //   }),
-      // })
+      }, {
+        params: t.Object({
+          id: t.String({ description: "Chat id" })
+        }),
+        response: {
+          200: baseResponseType(t.Object({ messages: t.Array(messageSelectType) })),
+          404: baseResponseType(t.Null()),
+          401: baseResponseType(t.Null()),
+        },
+      })
       // Update chat
       .put("/update/:id", async (ctx) => {
         const { id } = ctx.params;
@@ -265,37 +247,123 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           ctx.close();
           return
         }
-        if (chatId) {
-          const chat = await ctx.data.chatService.getChatById(chatId);
-          if (!chat) {
-            ctx.send({ status: 404, type: "error", success: false, message: "Chat not found" });
-            ctx.close();
-            return
-          }
-          ctx.send({ status: 200, type: "success", success: true, message: "Chat fetched successfully", data: { chat, type: "CHAT_INFO" } });
-          const response = await run(getAgent(chat.workspaceId, chatId), message, { stream: true });
-          for await (const chunk of response.toStream()) {
-            console.log(chunk);
-            // ctx.send(chunk);
-            ctx.send({ status: 200, type: "success", success: true, message: "Message sent successfully", data: { message: chunk, type: "MESSAGE" } });
-          }
-        } else {
-          const chat = await ctx.data.chatService.createChat(session.user.id, workspaceId, "New Chat");
-          if (!chat || chat.length === 0 || !chat[0]) {
-            ctx.send({ status: 404, type: "error", success: false, message: "Chat not found" });
-            ctx.close();
-            return
-          }
-          ctx.send({ status: 200, type: "success", success: true, message: "Chat created successfully", data: { chat, type: "CHAT_INFO" } });
-          const response = await run(getAgent(workspaceId, chat[0].id), message, { stream: true });
-          for await (const chunk of response.toStream()) {
-            console.log(chunk);
-            ctx.send({ status: 200, type: "success", success: true, message: "Message sent successfully", data: { message: chunk, type: "MESSAGE" } });
-          }
-        }
 
+        const chat = await (async () => {
+          if (chatId) {
+            const chat = await ctx.data.chatService.getChatById(chatId);
+            if (!chat) {
+              ctx.send({ status: 404, type: "error", success: false, message: "Chat not found" });
+              ctx.close();
+              return null
+            }
+            ctx.send({ status: 200, type: "success", success: true, message: "Chat fetched successfully", data: { chat, type: "CHAT_INFO" } });
+            return chat
+          } else {
+            const chat = await ctx.data.chatService.createChat(session.user.id, workspaceId, "New Chat");
+            if (!chat || chat.length === 0 || !chat[0]) {
+              ctx.send({ status: 404, type: "error", success: false, message: "Chat not found" });
+              ctx.close();
+              return null
+            }
+            ctx.send({ status: 200, type: "success", success: true, message: "Chat created successfully", data: { chat, type: "CHAT_INFO" } });
+            return chat[0]
+          }
+        })();
+        if (!chat) {
+          return
+        }
+        const messages = await ctx.data.chatService.getMessagesByChatId(chat.id);
+        const conversation: AgentInputItem[] = messages.map((message) => {
+          if (message.role == "user") {
+            return {
+              role: "user",
+              content: message.content,
+              type: "message"
+            } as AgentInputItem
+          } else {
+            return {
+              role: message.role,
+              status: "completed",
+              content: [
+                {
+                  type: "output_text",
+                  text: message.content,
+                },
+              ],
+            } as AgentInputItem
+          }
+        }).concat({
+          role: "user",
+          content: message,
+          type: "message"
+        })
+        const response = await run(getAgent(chat.workspaceId, chatId!, session.user.id), conversation, { stream: true });
+        const { assistantMessage, userMessage } = await ctx.data.chatService.createUserAndChatBotMessage(chat.id, session.user.id, message, "");
+        ctx.send({
+          status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+            message: userMessage,
+            type: "USER_MESSAGE"
+          }
+        })
+        for await (const chunk of response.toStream()) {
+          // console.log(chunk);
+          // ctx.send(chunk);
+          if (chunk.type == "raw_model_stream_event") {
+            if (chunk.data.type == "model") {
+              console.log("model", chunk.data.event)
+            }
+            else if (chunk.data.type == "output_text_delta") {
+              console.log("output_text_delta", chunk.data.delta)
+              ctx.send({
+                status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+                  message: {
+                    ...assistantMessage,
+                    content: chunk.data.delta
+                  }
+                  , type: "MESSAGE"
+                }
+              });
+            }
+            else if (chunk.data.type == "response_done") {
+              console.log("response_done", chunk.data.response)
+            } else if (chunk.data.type == "response_started") {
+              console.log(chunk.data.type)
+            }
+          } else if (chunk.type == "agent_updated_stream_event") {
+            // console.log(inspect(chunk.agent));
+          } else if (chunk.type == "run_item_stream_event") {
+            console.log("run_item_stream_event", JSON.stringify(chunk));
+          } else {
+            console.log(chunk);
+          }
+
+        }
+        if (response.finalOutput) {
+          const update = await ctx.data.chatService.updateMessage(assistantMessage.id, response.finalOutput);
+          ctx.send({
+            status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+              message: {
+                ...update[0],
+                content: response.finalOutput
+              }
+              , type: "FINAL_MESSAGE"
+            }
+          });
+        }
       }
     }
   });
 
+// function chunkToWebsocketEvent(chunk: RunStreamEvent) {
+//   if (chunk.type == "agent_updated_stream_event") {
+//     console.log(chunk.agent.instructions)
+//   }
+//   else if (chunk.type == "raw_model_stream_event") {
+//     // chunk.data.data
+//   }
+//   else if (chunk.type == "run_item_stream_event") {
 
+//   } else {
+//     return null
+//   }
+// }

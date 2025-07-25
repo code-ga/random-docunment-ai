@@ -5,9 +5,13 @@ import { client } from "../../lib/client";
 
 interface Message {
   id: string;
+  createdAt: Date | null;
+  userId: string | null;
+  name: string | null;
+  chatId: string;
   role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
+  content: string | null;
+  index: number;
 }
 
 interface Chat {
@@ -26,11 +30,11 @@ interface ChatBoxProps {
   onChatSelected?: (chatId: string) => void;
 }
 
-export default function ChatBox({ 
-  workspaceId, 
-  selectedChatId, 
+export default function ChatBox({
+  workspaceId,
+  selectedChatId,
   onChatCreated,
-  onChatSelected 
+  onChatSelected,
 }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -38,7 +42,7 @@ export default function ChatBox({
   const [isConnected, setIsConnected] = useState(false);
   const [currentChat, setCurrentChat] = useState<Chat | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const { data: session } = useSession();
@@ -66,14 +70,16 @@ export default function ChatBox({
           console.log("WebSocket connected");
           setIsConnected(true);
           setError(null);
-          
+
           // Authenticate
-          ws.send(JSON.stringify({
-            type: "AUTH",
-            data: {
-              token: encodeURIComponent(session.session.token)
-            }
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "AUTH",
+              data: {
+                token: encodeURIComponent(session.session.token),
+              },
+            })
+          );
         };
 
         ws.onmessage = (event) => {
@@ -95,26 +101,59 @@ export default function ChatBox({
               } else if (response.data.type === "MESSAGE") {
                 // AI response chunk received
                 const chunk = response.data.message;
-                if (chunk && typeof chunk === 'string') {
-                  setMessages(prev => {
+                if (chunk) {
+                  setMessages((prev) => {
                     const lastMessage = prev[prev.length - 1];
-                    if (lastMessage && lastMessage.role === 'assistant') {
+                    if (lastMessage && lastMessage.role === "assistant") {
                       // Append to existing assistant message
-                      return prev.map((msg, index) => 
-                        index === prev.length - 1 
-                          ? { ...msg, content: msg.content + chunk }
+                      return prev.map((msg, index) =>
+                        index === prev.length - 1
+                          ? { ...msg, content: msg.content + chunk.content }
                           : msg
                       );
                     } else {
                       // Create new assistant message
-                      return [...prev, {
-                        id: Date.now().toString(),
-                        role: 'assistant',
-                        content: chunk,
-                        timestamp: new Date()
-                      }];
+                      return [
+                        ...prev,
+                        {
+                          id: chunk.id,
+                          role: chunk.role,
+                          content: chunk.content,
+                          index: chunk.index,
+                          chatId: chunk.chatId,
+                          createdAt: chunk.createdAt,
+                          userId: chunk.userId,
+                          name: chunk.name,
+                        },
+                      ];
                     }
                   });
+                }
+              } else if (response.data.type === "USER_MESSAGE") {
+                // User message received
+                const message = response.data.message;
+                if (message) {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: message.id,
+                      role: message.role,
+                      content: message.content,
+                      index: message.index,
+                      chatId: message.chatId,
+                      createdAt: message.createdAt,
+                      userId: message.userId,
+                      name: message.name,
+                    },
+                  ]);
+                }
+              } else if (response.data.type === "FINAL_MESSAGE") {
+                // Final message received
+                const message = response.data.message;
+                if (message) {
+                  setMessages((prev) =>
+                    prev.map((msg) => (msg.id === message.id ? message : msg))
+                  );
                 }
               }
             } else if (!response.success) {
@@ -171,7 +210,11 @@ export default function ChatBox({
         });
         // TODO: Load messages for this chat
         // For now, we'll clear messages as the backend doesn't seem to have message loading endpoint
-        setMessages([]);
+        const messages = await client.api.chats.messages({ id: chatId }).get();
+        // setMessages([]);
+        if (messages.data?.success && messages.data.data?.messages) {
+          setMessages(messages.data.data.messages || []);
+        }
       }
     } catch (err) {
       console.error("Error loading chat:", err);
@@ -182,27 +225,29 @@ export default function ChatBox({
   const sendMessage = async () => {
     if (!inputMessage.trim() || !isConnected || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputMessage.trim(),
-      timestamp: new Date()
-    };
+    // const userMessage: Message = {
+    //   id: Date.now().toString(),
+    //   role: "user",
+    //   content: inputMessage.trim(),
+    //   timestamp: new Date(),
+    // };
 
-    setMessages(prev => [...prev, userMessage]);
+    // setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
     setIsLoading(true);
     setError(null);
 
     try {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: "CHAT",
-          data: {
-            message: userMessage.content,
-            chatId: selectedChatId
-          }
-        }));
+        wsRef.current.send(
+          JSON.stringify({
+            type: "CHAT",
+            data: {
+              message: inputMessage.trim(),
+              chatId: selectedChatId,
+            },
+          })
+        );
       } else {
         throw new Error("WebSocket not connected");
       }
@@ -279,7 +324,7 @@ export default function ChatBox({
                   <Bot className="w-4 h-4 text-white" />
                 </div>
               )}
-              
+
               <div
                 className={`max-w-[80%] p-3 rounded-lg ${
                   message.role === "user"
@@ -289,7 +334,7 @@ export default function ChatBox({
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
+                  {message.createdAt?.toLocaleTimeString()}
                 </p>
               </div>
 
@@ -301,7 +346,7 @@ export default function ChatBox({
             </div>
           ))
         )}
-        
+
         {isLoading && (
           <div className="flex gap-3 justify-start">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -315,7 +360,7 @@ export default function ChatBox({
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

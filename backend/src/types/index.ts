@@ -43,3 +43,7 @@ export type Document = Static<typeof documentSelectType>
 export const chatSelectType = createSelectSchema(table.chats);
 
 export type Chat = Static<typeof chatSelectType>
+
+export const messageSelectType = createSelectSchema(table.messages);
+
+export type Message = Static<typeof messageSelectType>

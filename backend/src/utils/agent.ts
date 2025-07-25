@@ -71,7 +71,7 @@ Your priority is to assist the user in learning through verified facts, memory s
 
 `
 
-export const getAgent = (workspaceId: string, chatId: string) => {
+export const getAgent = (workspaceId: string, chatId: string, userID: string) => {
   const searchInKnowledgeBase = tool({
     name: "search_in_knowledge_base",
     description: "Use this tool to answer questions about documents.",
@@ -92,13 +92,12 @@ export const getAgent = (workspaceId: string, chatId: string) => {
   })
 
   const changeChatName = tool({
-    name: "change_chat_id",
+    name: "change_chat_name",
     description: "Use this tool to change the chat id.",
     parameters: z.object({
-      chatId: z.string(),
       chatName: z.string()
     }),
-    async execute({ chatId, chatName }) {
+    async execute({ chatName }) {
       return await db.update(table.chats).set({ title: chatName }).where(eq(table.chats.id, chatId));
     }
   })
@@ -109,7 +108,42 @@ export const getAgent = (workspaceId: string, chatId: string) => {
       chatId: z.string()
     }),
     async execute({ chatId }) {
-      return await db.select().from(table.chats).where(eq(table.chats.id, chatId));
+      const chat = await db.select().from(table.chats).where(eq(table.chats.id, chatId));
+      if (!chat.length || !chat[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Chat not found"
+        }
+      }
+      const workspace = await db.select().from(table.workspace).where(eq(table.workspace.id, chat[0].workspaceId));
+      if (!workspace.length || !workspace[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Workspace not found"
+        }
+      }
+      if (!workspace[0].public && workspace[0].userId !== userID) {
+        return {
+          status: 401,
+          type: "error",
+          success: false,
+          message: "Unauthorized Access: Token is invalid"
+        }
+      }
+      return {
+        status: 200,
+        type: "success",
+        success: true,
+        message: "Chat found",
+        data: {
+          workspace: workspace[0],
+          chat: chat[0]
+        }
+      }
     }
   })
   const getWorkspaceInfo = tool({
@@ -117,7 +151,22 @@ export const getAgent = (workspaceId: string, chatId: string) => {
     description: "Use this tool to get workspace info.",
     parameters: z.object({}),
     async execute() {
-      return await db.select().from(table.workspace).where(eq(table.workspace.id, workspaceId));
+      const workspace = await db.select().from(table.workspace).where(eq(table.workspace.id, workspaceId));
+      if (!workspace.length || !workspace[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Workspace not found"
+        }
+      }
+      return {
+        status: 200,
+        type: "success",
+        success: true,
+        message: "Workspace found",
+        data: workspace[0]
+      }
     }
   })
   const getDocumentInfo = tool({
@@ -127,7 +176,39 @@ export const getAgent = (workspaceId: string, chatId: string) => {
       documentId: z.string()
     }),
     async execute({ documentId }) {
-      return await db.select().from(table.documents).where(eq(table.documents.id, documentId));
+      const document = await db.select().from(table.documents).where(eq(table.documents.id, documentId));
+      if (!document.length || !document[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Document not found"
+        }
+      }
+      const workspace = await db.select().from(table.workspace).where(eq(table.workspace.id, document[0].workspaceId));
+      if (!workspace.length || !workspace[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Workspace not found"
+        }
+      }
+      if (!workspace[0].public && workspace[0].userId !== userID) {
+        return {
+          status: 401,
+          type: "error",
+          success: false,
+          message: "Unauthorized Access: Token is invalid"
+        }
+      }
+      return {
+        status: 200,
+        type: "success",
+        success: true,
+        message: "Document found",
+        data: document[0]
+      }
     }
   })
   const getCurrentChatInfo = tool({

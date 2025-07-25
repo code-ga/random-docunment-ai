@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import Elysia from "elysia";
 import { db } from "../database";
-import { chats as chatsTable } from "../database/schema";
+import { chats as chatsTable, messages as messagesTable } from "../database/schema";
 
 export class ChatService {
   constructor() { }
@@ -36,6 +36,28 @@ export class ChatService {
       .where(eq(chatsTable.id, id))
       .returning();
     return deleted;
+  }
+  async getMessagesByChatId(id: string) {
+    return await db.select().from(messagesTable).orderBy((t) => asc(t.index)).where(eq(messagesTable.chatId, id));
+  }
+
+  async createUserAndChatBotMessage(chatId: string, userId: string, userContent: string, assistantContent: string) {
+    return await db.transaction(async db => {
+      const messageIndex = (await db.select().from(messagesTable).where(eq(messagesTable.chatId, chatId))).length;
+      const userMessage = await db.insert(messagesTable).values({ chatId, userId, role: "user", content: userContent, index: messageIndex }).returning();
+      if (!userMessage || !userMessage[0]) throw new Error("Failed to create user message");
+      const assistantMessage = await db.insert(messagesTable).values({ chatId, userId, role: "assistant", content: assistantContent, index: messageIndex + 1 }).returning();
+      if (!assistantMessage || !assistantMessage[0]) throw new Error("Failed to create assistant message");
+      return { userMessage: userMessage[0], assistantMessage: assistantMessage[0] };
+    })
+  }
+
+  async updateMessage(id: string, content: string) {
+    const update = await db.update(messagesTable)
+      .set({ content })
+      .where(eq(messagesTable.id, id))
+      .returning();
+    return update;
   }
 }
 

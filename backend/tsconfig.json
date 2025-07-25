@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
@@ -12,6 +10,7 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "noUncheckedIndexedAccess": true,
+    "noErrorTruncation": true,
     "noEmit": true,
     "types": [
       "bun-types" // add Bun global

@@ -155,7 +155,7 @@ export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
 
 // Message table
 export const messages = pgTable('messages', {
-  id: serial('id').primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   chatId: text('chat_id')
     .references(() => chats.id, { onDelete: 'cascade' })
     .notNull(),
@@ -163,7 +163,6 @@ export const messages = pgTable('messages', {
   role: messageRoleEnum('role').notNull(),
   content: text('content'),
   name: text('name'),
-  tool_call_id: text('tool_call_id'),
   createdAt: timestamp('created_at').defaultNow(),
   index: integer('index').notNull().default(0),
   // tokens: integer('tokens'), // Optional: for tracking usage
