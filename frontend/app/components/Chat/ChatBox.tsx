@@ -16,11 +16,11 @@ interface Message {
 
 interface Chat {
   id: string;
-  title: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
   userId: string;
+  title: string;
   workspaceId: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 interface ChatBoxProps {
@@ -62,14 +62,14 @@ export default function ChatBox({
 
     const connectWebSocket = () => {
       try {
-        const wsUrl = `ws://api-study-ai.nbth.id.vn/api/chats/chat/${workspaceId}`;
+        const wsUrl = `wss://api-study-ai.nbth.id.vn/api/chats/chat/${workspaceId}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
           console.log("WebSocket connected");
-          setIsConnected(true);
-          setError(null);
+          // setIsConnected(true);
+          setError("Authenticating...");
 
           // Authenticate
           ws.send(
@@ -88,7 +88,17 @@ export default function ChatBox({
             console.log("WebSocket message:", response);
 
             if (response.success && response.data) {
-              if (response.data.type === "CHAT_INFO") {
+              if (response.data.type === "AUTH") {
+                // Authentication response received
+                if (response.data.user) {
+                  // Authentication successful
+                  setIsConnected(true);
+                  setError(null);
+                }
+              } else if (response.type === "error") {
+                // Error received
+                setError(response.message);
+              } else if (response.data.type === "CHAT_INFO") {
                 // Chat info received
                 const chat = response.data.chat;
                 setCurrentChat(chat);
@@ -155,6 +165,8 @@ export default function ChatBox({
                     prev.map((msg) => (msg.id === message.id ? message : msg))
                   );
                 }
+                setIsLoading(false);
+                setError(null);
               }
             } else if (!response.success) {
               setError(response.message || "An error occurred");
@@ -205,12 +217,11 @@ export default function ChatBox({
         // setCurrentChat(response.data.data.chat);
         setCurrentChat({
           ...response.data.data.chat,
-          createdAt: response.data.data.chat.createdAt?.toISOString(),
-          updatedAt: response.data.data.chat.updatedAt?.toISOString(),
         });
         // TODO: Load messages for this chat
         // For now, we'll clear messages as the backend doesn't seem to have message loading endpoint
         const messages = await client.api.chats.messages({ id: chatId }).get();
+        console.log(messages);
         // setMessages([]);
         if (messages.data?.success && messages.data.data?.messages) {
           setMessages(messages.data.data.messages || []);
@@ -334,7 +345,7 @@ export default function ChatBox({
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs opacity-70 mt-1">
-                  {message.createdAt?.toLocaleTimeString()}
+                  {/* {message.createdAt?.toLocaleTimeString()} */}
                 </p>
               </div>
 

@@ -4,11 +4,11 @@ import { client } from "../../lib/client";
 
 interface Chat {
   id: string;
-  title: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
   userId: string;
+  title: string;
   workspaceId: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface ChatListProps {
@@ -19,12 +19,12 @@ interface ChatListProps {
   newChat?: Chat | null;
 }
 
-export default function ChatList({ 
-  workspaceId, 
-  selectedChatId, 
-  onChatSelect, 
+export default function ChatList({
+  workspaceId,
+  selectedChatId,
+  onChatSelect,
   onNewChat,
-  newChat 
+  newChat,
 }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,8 @@ export default function ChatList({
 
   // Add new chat to list when created
   useEffect(() => {
-    if (newChat && !chats.find(chat => chat.id === newChat.id)) {
-      setChats(prev => [newChat, ...prev]);
+    if (newChat && !chats.find((chat) => chat.id === newChat.id)) {
+      setChats((prev) => [newChat, ...prev]);
     }
   }, [newChat]);
 
@@ -48,9 +48,9 @@ export default function ChatList({
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await client.api.chats.list({ workspaceId }).get();
-      
+
       if (response.error) {
         setError(response.error.value.message || "Failed to load chats");
         return;
@@ -71,22 +71,22 @@ export default function ChatList({
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!confirm("Are you sure you want to delete this chat?")) {
       return;
     }
 
     try {
-      const response = await client.api.chats.delete({ id: chatId }).delete();
-      
+      const response = await client.api.chats.delete.delete({ id: chatId });
+
       if (response.error) {
         setError(response.error.value.message || "Failed to delete chat");
         return;
       }
 
       if (response.data?.success) {
-        setChats(prev => prev.filter(chat => chat.id !== chatId));
-        
+        setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+
         // If the deleted chat was selected, clear selection
         if (selectedChatId === chatId) {
           onNewChat();
@@ -102,10 +102,10 @@ export default function ChatList({
 
   const handleEditChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    const chat = chats.find(c => c.id === chatId);
+
+    const chat = chats.find((c) => c.id === chatId);
     if (!chat) return;
-    
+
     setEditingChatId(chatId);
     setEditTitle(chat.title);
   };
@@ -118,20 +118,20 @@ export default function ChatList({
 
     try {
       const response = await client.api.chats.update({ id: chatId }).put({
-        title: editTitle.trim()
+        title: editTitle.trim(),
       });
-      
+
       if (response.error) {
         setError(response.error.value.message || "Failed to update chat");
         return;
       }
 
       if (response.data?.success) {
-        setChats(prev => prev.map(chat => 
-          chat.id === chatId 
-            ? { ...chat, title: editTitle.trim() }
-            : chat
-        ));
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.id === chatId ? { ...chat, title: editTitle.trim() } : chat
+          )
+        );
         setEditingChatId(null);
         setEditTitle("");
       } else {
@@ -189,7 +189,7 @@ export default function ChatList({
       {error && (
         <div className="p-2 bg-red-900/50 border-b border-red-700 text-red-300 text-xs">
           {error}
-          <button 
+          <button
             onClick={() => setError(null)}
             className="ml-2 text-red-400 hover:text-red-300"
           >
@@ -237,10 +237,11 @@ export default function ChatList({
                       </h4>
                     )}
                     <p className="text-xs text-gray-400 mt-1">
-                      {new Date(chat.createdAt).toLocaleDateString()}
+                      {chat.createdAt &&
+                        new Date(chat.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  
+
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
                     <button
                       onClick={(e) => handleEditChat(chat.id, e)}

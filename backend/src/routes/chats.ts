@@ -153,8 +153,8 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
         },
       })
       // Delete chat
-      .delete("/delete/:id", async (ctx) => {
-        const { id } = ctx.params;
+      .delete("/delete", async (ctx) => {
+        const { id } = ctx.body;
         const chat = await ctx.chatService.getChatById(id);
         if (!chat) {
           return ctx.status(404, { status: 404, type: "error", success: false, message: "Chat not found" });
@@ -171,7 +171,7 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           data: { chat: deletedChat }
         };
       }, {
-        params: t.Object({
+        body: t.Object({
           id: t.String()
         }),
         response: {
@@ -225,7 +225,7 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           ctx.close();
           return
         }
-        ctx.send({ status: 200, type: "success", success: true, message: "Authenticated successfully", data: { user } });
+        ctx.send({ status: 200, type: "success", success: true, message: "Authenticated successfully", data: { user, type: "AUTH" } });
         authedWebsocket.set(ctx.id, user);
       } else if (value.data.type == "CHAT") {
         const { message, chatId } = value.data.data;
