@@ -310,10 +310,10 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           // ctx.send(chunk);
           if (chunk.type == "raw_model_stream_event") {
             if (chunk.data.type == "model") {
-              console.log("model", chunk.data.event)
+              // console.log("model", chunk.data.event)
             }
             else if (chunk.data.type == "output_text_delta") {
-              console.log("output_text_delta", chunk.data.delta)
+              // console.log("output_text_delta", chunk.data.delta)
               ctx.send({
                 status: 200, type: "success", success: true, message: "Message sent successfully", data: {
                   message: {
@@ -327,12 +327,13 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
             else if (chunk.data.type == "response_done") {
               console.log("response_done", chunk.data.response)
             } else if (chunk.data.type == "response_started") {
-              console.log(chunk.data.type)
+              // console.log(chunk.data.type)
             }
           } else if (chunk.type == "agent_updated_stream_event") {
             // console.log(inspect(chunk.agent));
           } else if (chunk.type == "run_item_stream_event") {
             console.log("run_item_stream_event", JSON.stringify(chunk));
+            // chunk.name
           } else {
             console.log(chunk);
           }
