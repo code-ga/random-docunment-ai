@@ -2,6 +2,7 @@ import { Send, Bot, User, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "../../lib/auth";
 import { client } from "../../lib/client";
+import { BASE_API_URL } from "../../constant";
 
 interface Message {
   id: string;
@@ -62,7 +63,7 @@ export default function ChatBox({
 
     const connectWebSocket = () => {
       try {
-        const wsUrl = `wss://api-study-ai.nbth.id.vn/api/chats/chat/${workspaceId}`;
+        const wsUrl = `${BASE_API_URL}/api/chats/chat/${workspaceId}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 

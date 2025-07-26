@@ -40,7 +40,7 @@ export const auth = betterAuth({
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
     },
   },
-  trustedOrigins: ["http://localhost:3000/api/auth", "http://localhost:3000", "http://localhost:5173", "http://localhost:5173/auth/callback", "https://self-hosted-forum.vercel.app"],
+  trustedOrigins: ["http://localhost:3000/api/auth", "http://localhost:3000", "http://localhost:5173", "https://random-docunment-ai.vercel.app"],
   advanced: {
     cookies: {
       session_token: {
@@ -73,8 +73,6 @@ export const auth = betterAuth({
 });
 
 export const getSessionFromToken = async (token: string) => {
-  const headers = new Headers();
-  headers.set("Cookie", `better-auth.session-token=${token}`);
   const sessionQuery = await db.select().from(sessions).where(eq(sessions.token, token)).leftJoin(user, eq(sessions.userId, user.id));
   if (!sessionQuery.length || !sessionQuery[0]) {
     return null;
