@@ -2,19 +2,19 @@
 # see all versions at https://hub.docker.com/r/oven/bun/tags
 FROM oven/bun:1 AS base
 WORKDIR /usr/src/app
-RUN apt-get update && apt-get install -y python3 make build-essential
+RUN apt-get update && apt-get install -y python3 make build-essential libvips-dev
 
 # install dependencies into temp directory
 # this will cache them and speed up future builds
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json drizzle.config.ts /temp/dev/
-RUN cd /temp/dev && bun install --omit=dev
+RUN cd /temp/dev && bun install --omit=dev && bun add sharp --platform=linux --arch=x64
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
 COPY package.json drizzle.config.ts /temp/prod/
-RUN cd /temp/prod && bun install --production
+RUN cd /temp/prod && bun install --production && bun add sharp --platform=linux --arch=x64
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
