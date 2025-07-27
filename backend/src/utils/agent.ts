@@ -1,6 +1,6 @@
 import { Agent, Tool, tool } from "@openai/agents";
 import { aisdk } from '@openai/agents-extensions';
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import z from "zod";
 import { db, table } from "../database";
 import { findSimilarDocuments } from "./embedding";
@@ -206,6 +206,16 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string, cu
     parameters: z.object({}),
     async execute() {
       return await db.select().from(table.chats).where(eq(table.chats.id, chatId));
+    }
+  })
+  const getFullDocumentWithChunkByIds = tool({
+    name: "get_full_document_with_chunk_by_ids",
+    description: "Use this tool to get full document with chunk by ids.",
+    parameters: z.object({
+      ids: z.array(z.string())
+    }),
+    async execute({ ids }) {
+      return await db.select().from(table.chunks).where(inArray(table.chunks.id, ids));
     }
   })
   const agent = new Agent({

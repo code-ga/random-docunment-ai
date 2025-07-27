@@ -6,7 +6,8 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { generateEmbedding } from "../utils/embedding";
 
 const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1000, chunkOverlap: 200
+  chunkSize: 1000, chunkOverlap: 200,
+  separators: ["\n\n", "\n", " ", ""]
 });
 export class DocumentService {
   constructor() { }

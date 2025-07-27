@@ -2,24 +2,19 @@ import { and, eq, sql } from 'drizzle-orm';
 import { cosineDistance, gt, desc } from 'drizzle-orm';
 import { db } from '../database';
 import { table } from '../database/schema';
-import { ollama } from './getAiClient';
+import { pipeline } from '@xenova/transformers';
 
-// const openai = new OpenAI({
-//   // apiKey: process.env['OPENAI_API_KEY'],
-//   baseURL: "http://localhost:11434/v1"
-// });
+const embedder = await pipeline('feature-extraction', 'Xenova/distiluse-base-multilingual-cased-v1');
+
 
 export const generateEmbedding = async (value: string): Promise<{ embedding: number[], model: string }> => {
-  const input = value // .replaceAll('\n', ' ');
+  const input = value
 
-  const { embedding } = await ollama.embeddings({
-    // model: 'text-embedding-3-small',
-    model: "nomic-embed-text",
-    // model: "llama3.2",
-    prompt: input
+  const result = await embedder(input, {
+    pooling: "mean",
+    normalize: true
   });
-
-  return { embedding: embedding || [], model: "nomic-embed-text" };
+  return { embedding: Array.from(result.data) || [], model: "Xenova/distiluse-base-multilingual-cased-v1" };
 };
 
 //TODO: Check result of this please
