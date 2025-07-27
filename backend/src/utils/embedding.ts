@@ -1,8 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { cosineDistance, gt, desc } from 'drizzle-orm';
-import ollama from 'ollama';
 import { db } from '../database';
 import { table } from '../database/schema';
+import { ollama } from './getAiClient';
 
 // const openai = new OpenAI({
 //   // apiKey: process.env['OPENAI_API_KEY'],
