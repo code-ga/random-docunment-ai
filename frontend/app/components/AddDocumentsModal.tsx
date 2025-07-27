@@ -17,8 +17,25 @@ export default function AddDocumentsModal({
   if (!isOpen) return null;
 
   const handleAdd = () => {
-    onAdd(selectedFiles ? Array.from(selectedFiles) : []);
-    handleClose();
+    if (!selectedFiles || selectedFiles.length === 0) {
+      setError("Please select at least one file to add.");
+      return;
+    }
+    
+    const maxSizeInBytes = 10 * 1024 * 1024; // 10MB limit
+    const oversizedFiles = Array.from(selectedFiles).filter(file => file.size > maxSizeInBytes);
+    if (oversizedFiles.length > 0) {
+      setError(`The following files exceed the 10MB size limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      return;
+    }
+    
+    try {
+      onAdd(Array.from(selectedFiles));
+      handleClose();
+    } catch (err) {
+      setError("An error occurred while adding the files. Please try again.");
+      console.error("Error in handleAdd:", err);
+    }
   };
 
   const handleClose = () => {
@@ -80,10 +97,10 @@ export default function AddDocumentsModal({
             {"Choose file..."}
           </label>
           {selectedFiles &&
-            Array.from(selectedFiles).map((selectedFiles) => (
-              <p className="text-sm text-gray-400 mt-2">
-                Selected: {selectedFiles.name} (
-                {(selectedFiles.size / 1024).toFixed(1)} KB)
+            Array.from(selectedFiles).map((file) => (
+              <p key={file.name} className="text-sm text-gray-400 mt-2">
+                Selected: {file.name} (
+                {(file.size / 1024).toFixed(1)} KB)
               </p>
             ))}
         </div>

@@ -1,15 +1,13 @@
-import { createXai } from '@ai-sdk/xai';
-import { Agent, tool } from "@openai/agents";
+import { Agent, Tool, tool } from "@openai/agents";
 import { aisdk } from '@openai/agents-extensions';
 import { eq } from "drizzle-orm";
 import z from "zod";
 import { db, table } from "../database";
 import { findSimilarDocuments } from "./embedding";
+import { xaiClient } from './getAiClient';
 
-const xai = createXai({
-  apiKey: process.env.AI_API_KEY,
-});
-const model = aisdk(xai("grok-3-fast"));
+
+const model = aisdk(xaiClient);
 
 const instructions = `
 You are a highly accurate, neutral, and helpful AI assistant designed to help users learn by querying documents, asking quizzes, and providing reliable answers grounded in facts.
@@ -71,7 +69,7 @@ Your priority is to assist the user in learning through verified facts, memory s
 
 `
 
-export const getAgent = (workspaceId: string, chatId: string, userID: string) => {
+export const getAgent = (workspaceId: string, chatId: string, userID: string, customTool: Tool[] = []) => {
   const searchInKnowledgeBase = tool({
     name: "search_in_knowledge_base",
     description: "Use this tool to answer questions about documents.",
@@ -91,16 +89,7 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string) =>
     }
   })
 
-  const changeChatName = tool({
-    name: "change_chat_name",
-    description: "Use this tool to change the chat id.",
-    parameters: z.object({
-      chatName: z.string()
-    }),
-    async execute({ chatName }) {
-      return await db.update(table.chats).set({ title: chatName }).where(eq(table.chats.id, chatId));
-    }
-  })
+
   const getChatInfo = tool({
     name: "get_chat_info",
     description: "Use this tool to get chat info.",
@@ -223,7 +212,7 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string) =>
     name: "Study.ai",
     instructions,
     model,
-    tools: [searchInKnowledgeBase, listKnowledgeBase, changeChatName, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo],
+    tools: [searchInKnowledgeBase, listKnowledgeBase, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo, ...customTool],
   });
   return agent
 }

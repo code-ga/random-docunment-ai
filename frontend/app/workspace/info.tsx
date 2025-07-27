@@ -15,6 +15,7 @@ import authClient, { useSession } from "../lib/auth";
 import AddDocumentsModal from "../components/AddDocumentsModal";
 import ChatBox from "../components/Chat/ChatBox";
 import ChatList from "../components/Chat/ChatList";
+import { ChatProvider } from "../contexts/ChatContext";
 
 export default function WorkspaceInfoPage() {
   const { id } = useParams();
@@ -34,8 +35,6 @@ export default function WorkspaceInfoPage() {
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showAddMultiplePopup, setShowAddMultiplePopup] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [newChat, setNewChat] = useState<any>(null);
   const { data } = useSession();
 
   useEffect(() => {
@@ -311,32 +310,18 @@ export default function WorkspaceInfoPage() {
             </div>
           </div>
 
-          {/* Chat Box - Center (Largest) */}
-          <div className="flex-1 min-w-0">
-            <ChatBox
-              workspaceId={workspace?.id || ""}
-              selectedChatId={selectedChatId}
-              onChatCreated={(chat) => {
-                setNewChat(chat);
-                setSelectedChatId(chat.id);
-              }}
-              onChatSelected={setSelectedChatId}
-            />
-          </div>
+          {/* Chat Section with Context Provider */}
+          <ChatProvider>
+            {/* Chat Box - Center (Largest) */}
+            <div className="flex-1 min-w-0">
+              <ChatBox workspaceId={workspace?.id || ""} />
+            </div>
 
-          {/* Chat History - Right Sidebar */}
-          <div className="w-72 flex-shrink-0">
-            <ChatList
-              workspaceId={workspace?.id || ""}
-              selectedChatId={selectedChatId}
-              onChatSelect={setSelectedChatId}
-              onNewChat={() => {
-                setSelectedChatId(null);
-                setNewChat(null);
-              }}
-              newChat={newChat}
-            />
-          </div>
+            {/* Chat History - Right Sidebar */}
+            <div className="w-72 flex-shrink-0">
+              <ChatList workspaceId={workspace?.id || ""} />
+            </div>
+          </ChatProvider>
         </div>
       </div>
 

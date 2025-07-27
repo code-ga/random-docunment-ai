@@ -13,16 +13,25 @@ export default function EditDocumentModal({
   onSave,
 }: EditDocumentModalProps) {
   const [title, setTitle] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (document) {
       setTitle(document.title);
     }
-  }, [document]);
+  }, [document]); // Dependency on 'document' is necessary to update title when modal opens with a new document
 
   if (!document) return null;
 
   const handleSave = () => {
+    if (!title.trim()) {
+      setError("Title cannot be empty.");
+      return;
+    }
+    if (title.length > 100) {
+      setError("Title is too long. Maximum length is 100 characters.");
+      return;
+    }
     onSave(title);
     onClose();
   };
@@ -31,6 +40,11 @@ export default function EditDocumentModal({
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
       <div className="bg-[#1e293b] w-full max-w-md rounded-xl p-6 shadow-lg relative">
         <h2 className="text-lg font-semibold mb-4">Edit Document Title</h2>
+        {error && (
+          <p className="text-red-500 mb-4 bg-red-900/20 rounded-lg p-2 border border-red-400 text-sm">
+            {error}
+          </p>
+        )}
         <input
           type="text"
           value={title}

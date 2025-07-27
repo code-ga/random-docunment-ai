@@ -5,7 +5,7 @@ import { userMiddleware } from "../middlewares/auth-middleware";
 import { chatService } from "../services/Chat";
 import { workspaceService } from "../services/Workspace";
 import { baseResponseType, chatSelectType, messageSelectType } from "../types";
-import { Agent, AgentInputItem, run, RunState, RunStreamEvent } from "@openai/agents";
+import { Agent, AgentInputItem, run, RunState, RunStreamEvent, tool } from "@openai/agents";
 import { getAgent } from "../utils/agent";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -197,6 +197,8 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
       //   return
       // }
     },
+    sendPings: true,
+    idleTimeout: 60 * 60 * 1000, // 1 hour
     message: async (ctx, message) => {
       const value = await messageType.safeParseAsync(message);
       if (!value.success) {
@@ -265,7 +267,7 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
               ctx.close();
               return null
             }
-            ctx.send({ status: 200, type: "success", success: true, message: "Chat created successfully", data: { chat, type: "CHAT_INFO" } });
+            ctx.send({ status: 200, type: "success", success: true, message: "Chat created successfully", data: { chat: chat[0], type: "CHAT_INFO" } });
             return chat[0]
           }
         })();
@@ -297,7 +299,23 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           content: message,
           type: "message"
         })
-        const response = await run(getAgent(chat.workspaceId, chatId!, session.user.id), conversation, { stream: true });
+        const changeChatName = tool({
+          name: "change_chat_name",
+          description: "Use this tool to change the chat id.",
+          parameters: z.object({
+            chatName: z.string()
+          }),
+          async execute({ chatName }) {
+            // return await db.update(table.chats).set({ title: chatName }).where(eq(table.chats.id, chatId));
+            const result = await ctx.data.chatService.updateChat(chat.id, chatName);
+            ctx.send({
+              status: 200, type: "success", success: true, message: "Chat name changed successfully",
+              data: { chat: result, type: "CHAT_INFO_UPDATE" }
+            });
+            return result
+          }
+        })
+        const response = await run(getAgent(chat.workspaceId, chatId!, session.user.id, [changeChatName]), conversation, { stream: true });
         const { assistantMessage, userMessage } = await ctx.data.chatService.createUserAndChatBotMessage(chat.id, session.user.id, message, "");
         ctx.send({
           status: 200, type: "success", success: true, message: "Message sent successfully", data: {

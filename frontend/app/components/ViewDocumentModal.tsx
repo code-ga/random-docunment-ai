@@ -4,9 +4,6 @@ interface ViewDocumentModalProps {
   onClose: () => void;
 }
 
-function getSavingPath(savingPath?: string) {
-  return savingPath;
-}
 
 export default function ViewDocumentModal({
   document,
@@ -19,8 +16,9 @@ export default function ViewDocumentModal({
       <div className="bg-[#1e293b] w-full max-w-lg rounded-xl p-6 shadow-lg relative">
         <h2 className="text-xl font-semibold mb-4">{document.title}</h2>
         <p className="text-sm text-gray-300 whitespace-pre-wrap">
-          {document.summary}{" "}
-          {document.savingPath && `(${getSavingPath(document.savingPath)})`}
+          {/* Basic escaping to prevent XSS. Ideally, use a library like DOMPurify for proper sanitization */}
+          {String(document.summary).replace(/</g, '<').replace(/>/g, '>')}{" "}
+          {document.savingPath && `(${document.savingPath})`}
         </p>
         <button
           onClick={onClose}

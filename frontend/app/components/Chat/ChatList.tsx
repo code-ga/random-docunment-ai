@@ -1,6 +1,7 @@
 import { MessageCircle, Plus, Trash2, Edit3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { client } from "../../lib/client";
+import { useChat } from "../../contexts/ChatContext";
 
 interface Chat {
   id: string;
@@ -13,36 +14,28 @@ interface Chat {
 
 interface ChatListProps {
   workspaceId: string;
-  selectedChatId?: string | null;
-  onChatSelect: (chatId: string) => void;
-  onNewChat: () => void;
-  newChat?: Chat | null;
 }
 
 export default function ChatList({
   workspaceId,
-  selectedChatId,
-  onChatSelect,
-  onNewChat,
-  newChat,
 }: ChatListProps) {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  
+  const { 
+    state: { chats, selectedChatId, loading, error }, 
+    setChats, 
+    setLoading, 
+    setError, 
+    deleteChat, 
+    updateChat, 
+    setSelectedChat 
+  } = useChat();
 
   // Load chats when component mounts or workspaceId changes
   useEffect(() => {
     loadChats();
   }, [workspaceId]);
-
-  // Add new chat to list when created
-  useEffect(() => {
-    if (newChat && !chats.find((chat) => chat.id === newChat.id)) {
-      setChats((prev) => [newChat, ...prev]);
-    }
-  }, [newChat]);
 
   const loadChats = async () => {
     try {
@@ -64,8 +57,6 @@ export default function ChatList({
     } catch (err) {
       console.error("Error loading chats:", err);
       setError("Failed to load chats");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,12 +76,7 @@ export default function ChatList({
       }
 
       if (response.data?.success) {
-        setChats((prev) => prev.filter((chat) => chat.id !== chatId));
-
-        // If the deleted chat was selected, clear selection
-        if (selectedChatId === chatId) {
-          onNewChat();
-        }
+        deleteChat(chatId);
       } else {
         setError(response.data?.message || "Failed to delete chat");
       }
@@ -127,11 +113,10 @@ export default function ChatList({
       }
 
       if (response.data?.success) {
-        setChats((prev) =>
-          prev.map((chat) =>
-            chat.id === chatId ? { ...chat, title: editTitle.trim() } : chat
-          )
-        );
+        const chat = chats.find(c => c.id === chatId);
+        if (chat) {
+          updateChat({ ...chat, title: editTitle.trim() });
+        }
         setEditingChatId(null);
         setEditTitle("");
       } else {
@@ -176,7 +161,7 @@ export default function ChatList({
             Chat History
           </h3>
           <button
-            onClick={onNewChat}
+            onClick={() => setSelectedChat(null)}
             className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-gray-700 transition"
             title="New Chat"
           >
@@ -211,7 +196,7 @@ export default function ChatList({
             {chats.map((chat) => (
               <div
                 key={chat.id}
-                onClick={() => onChatSelect(chat.id)}
+                onClick={() => setSelectedChat(chat.id)}
                 className={`group p-2 rounded-lg cursor-pointer transition-colors ${
                   selectedChatId === chat.id
                     ? "bg-blue-600/20 border border-blue-500/50"
@@ -233,7 +218,7 @@ export default function ChatList({
                       />
                     ) : (
                       <h4 className="font-medium text-white truncate text-sm">
-                        {chat.title}
+                        {chat.title || "New Chat"}
                       </h4>
                     )}
                     <p className="text-xs text-gray-400 mt-1">
@@ -268,7 +253,7 @@ export default function ChatList({
       {/* Footer */}
       <div className="p-2 border-t border-gray-700">
         <button
-          onClick={onNewChat}
+          onClick={() => setSelectedChat(null)}
           className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg transition text-xs font-medium"
         >
           <Plus className="w-3 h-3" />

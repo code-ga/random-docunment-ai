@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSession } from "../../lib/auth";
 import { client } from "../../lib/client";
 import { BASE_API_URL } from "../../constant";
+import { useChat } from "../../contexts/ChatContext";
 
 interface Message {
   id: string;
@@ -26,17 +27,9 @@ interface Chat {
 
 interface ChatBoxProps {
   workspaceId: string;
-  selectedChatId?: string | null;
-  onChatCreated?: (chat: Chat) => void;
-  onChatSelected?: (chatId: string) => void;
 }
 
-export default function ChatBox({
-  workspaceId,
-  selectedChatId,
-  onChatCreated,
-  onChatSelected,
-}: ChatBoxProps) {
+export default function ChatBox({ workspaceId }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +40,9 @@ export default function ChatBox({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const { data: session } = useSession();
+  const { state: chatState, addChat, updateChat, setSelectedChat } = useChat();
+
+  const selectedChatId = chatState.selectedChatId;
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -86,7 +82,7 @@ export default function ChatBox({
         ws.onmessage = (event) => {
           try {
             const response = JSON.parse(event.data);
-            console.log("WebSocket message:", response);
+            // console.log("WebSocket message:", response);
 
             if (response.success && response.data) {
               if (response.data.type === "AUTH") {
@@ -103,11 +99,25 @@ export default function ChatBox({
                 // Chat info received
                 const chat = response.data.chat;
                 setCurrentChat(chat);
-                if (onChatCreated) {
-                  onChatCreated(chat);
+                addChat(chat);
+                setSelectedChat(chat.id);
+              } else if (response.data.type === "CHAT_INFO_UPDATE") {
+                // Chat info updated (e.g., title changed by AI)
+                const updatedChatData = response.data.chat;
+                let updatedChat;
+                if (
+                  updatedChatData &&
+                  Array.isArray(updatedChatData) &&
+                  updatedChatData.length > 0
+                ) {
+                  updatedChat = updatedChatData[0];
+                } else if (updatedChatData && !Array.isArray(updatedChatData)) {
+                  updatedChat = updatedChatData;
                 }
-                if (onChatSelected) {
-                  onChatSelected(chat.id);
+
+                if (updatedChat) {
+                  setCurrentChat(updatedChat);
+                  updateChat(updatedChat);
                 }
               } else if (response.data.type === "MESSAGE") {
                 // AI response chunk received
@@ -209,6 +219,10 @@ export default function ChatBox({
     if (selectedChatId && selectedChatId !== currentChat?.id) {
       loadChatMessages(selectedChatId);
     }
+    if (!selectedChatId) {
+      setCurrentChat(null);
+      setMessages([]);
+    }
   }, [selectedChatId]);
 
   const loadChatMessages = async (chatId: string) => {
@@ -222,7 +236,6 @@ export default function ChatBox({
         // TODO: Load messages for this chat
         // For now, we'll clear messages as the backend doesn't seem to have message loading endpoint
         const messages = await client.api.chats.messages({ id: chatId }).get();
-        console.log(messages);
         // setMessages([]);
         if (messages.data?.success && messages.data.data?.messages) {
           setMessages(messages.data.data.messages || []);
@@ -280,9 +293,7 @@ export default function ChatBox({
   const startNewChat = () => {
     setMessages([]);
     setCurrentChat(null);
-    if (onChatSelected) {
-      onChatSelected("");
-    }
+    setSelectedChat(null);
   };
 
   return (
