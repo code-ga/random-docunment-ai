@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y python3 make build-essential
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json bun.lock drizzle.config.ts /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile --omit=dev
+RUN cd /temp/dev && bun install --omit=dev
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
 COPY package.json bun.lock drizzle.config.ts /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+RUN cd /temp/prod && bun install --production
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
