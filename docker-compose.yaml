@@ -24,7 +24,7 @@ services:
       - postgres
     restart: always
   embedder:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7.1
     container_name: embedder
     # ports:
     #   - "8080:80"
@@ -34,7 +34,7 @@ services:
       - HF_TOKEN=${HF_TOKEN:-""}
     command:
       [
-        "--model-id", "Alibaba-NLP/gte-multilingual-base",
+        "--model-id", "BAAI/bge-m3",
       ]
     restart: unless-stopped
 
