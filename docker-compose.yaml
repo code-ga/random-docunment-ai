@@ -35,7 +35,6 @@ services:
     command:
       [
         "--model-id", "Alibaba-NLP/gte-multilingual-base",
-        "--dtype", "float16"
       ]
     restart: unless-stopped
 
