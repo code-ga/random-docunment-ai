@@ -222,7 +222,7 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string, cu
     name: "Study.ai",
     instructions,
     model,
-    tools: [searchInKnowledgeBase, listKnowledgeBase, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo, ...customTool],
+    tools: [searchInKnowledgeBase, listKnowledgeBase, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo, getFullDocumentWithChunkByIds, ...customTool],
   });
   return agent
 }

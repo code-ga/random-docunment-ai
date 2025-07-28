@@ -25,7 +25,7 @@ export const findSimilarDocuments = async (content: string, workspaceId: string)
   const similarGuides = await db
     .select({ content: table.chunks.content, id: table.chunks.id, documentId: table.chunks.documentId, similarity })
     .from(table.chunks)
-    .where(and(eq(table.chunks.workspaceId, workspaceId), gt(similarity, 0.5)))
+    .where(and(eq(table.chunks.workspaceId, workspaceId)))
     .orderBy((t) => desc(t.similarity))
     .leftJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
     .limit(4);
