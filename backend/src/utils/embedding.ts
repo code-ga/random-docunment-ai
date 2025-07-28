@@ -2,19 +2,20 @@ import { and, eq, sql } from 'drizzle-orm';
 import { cosineDistance, gt, desc } from 'drizzle-orm';
 import { db } from '../database';
 import { table } from '../database/schema';
-import { pipeline } from '@xenova/transformers';
 
-const embedder = await pipeline('feature-extraction', 'Xenova/distiluse-base-multilingual-cased-v1');
 
 
 export const generateEmbedding = async (value: string): Promise<{ embedding: number[], model: string }> => {
   const input = value
 
-  const result = await embedder(input, {
-    pooling: "mean",
-    normalize: true
+  const result = await fetch("http://embedder:3000/embed", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: input }),
   });
-  return { embedding: Array.from(result.data) || [], model: "Xenova/distiluse-base-multilingual-cased-v1" };
+  return { embedding: Array.from((await result.json() as {embedding: number[]}).embedding) || [], model: "Xenova/distiluse-base-multilingual-cased-v1" };
 };
 
 //TODO: Check result of this please

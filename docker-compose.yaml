@@ -23,6 +23,9 @@ services:
     depends_on:
       - postgres
     restart: always
+  embedder:
+    build: ./embedder
+    restart: always
 
 volumes:
   postgres:
