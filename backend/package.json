@@ -37,7 +37,8 @@
   },
   "module": "./src/index.ts",
   "override": {
-    "@sinclair/typebox": "0.32.4"
+    "@sinclair/typebox": "0.32.4",
+    "sharp": "0.33.0-alpha.11"
   },
   "trustedDependencies": [
     "better-sqlite3"
