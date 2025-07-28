@@ -129,7 +129,7 @@ export const chunks = pgTable("chunk", {
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  embedding: vector('embedding', { dimensions: 1536 }),
+  embedding: vector('embedding', { dimensions: 768 }),
   embedder: text('embedder'),
   fromLine: integer('from_line').notNull().default(0),
   toLine: integer('to_line').notNull().default(0),
