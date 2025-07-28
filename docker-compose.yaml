@@ -24,8 +24,20 @@ services:
       - postgres
     restart: always
   embedder:
-    build: ./embedder
-    restart: always
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7
+    container_name: embedder
+    # ports:
+    #   - "8080:80"
+    volumes:
+      - ./hf_cache:/data
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-""}
+    command:
+      [
+        "--model-id", "Alibaba-NLP/gte-multilingual-base",
+        "--dtype", "float16"
+      ]
+    restart: unless-stopped
 
 volumes:
   postgres:

@@ -3,19 +3,48 @@ import { cosineDistance, gt, desc } from 'drizzle-orm';
 import { db } from '../database';
 import { table } from '../database/schema';
 
+/** Embedding entry for a single input */
+export interface EmbeddingEntry {
+  object: "embedding";
+  index: number;
+  embedding: number[];  // length equals model embedding dimension (e.g. 768)
+}
+
+/** Usage statistics (token counts) */
+export interface UsageInfo {
+  prompt_tokens: number;
+  total_tokens: number;
+}
+
+/** Full response from /v1/embeddings */
+export interface EmbeddingsResponse {
+  object: "list";
+  data: EmbeddingEntry[];
+  model: string;     // e.g. "Alibaba‑NLP/gte‑multilingual‑base"
+  usage?: UsageInfo | null;
+}
 
 
 export const generateEmbedding = async (value: string): Promise<{ embedding: number[], model: string }> => {
   const input = value
 
-  const result = await fetch("http://embedder:3000/embed", {
+  const url = "http://embedder/v1/embeddings";
+  const body = JSON.stringify({
+    input: [input],
+    model: "Alibaba-NLP/gte-multilingual-base",
+    encoding_format: "float",
+  });
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
     },
-    body: JSON.stringify({ text: input }),
+    body,
+    verbose: true, // logs request/res headers to stdout :contentReference[oaicite:1]{index=1}
   });
-  return { embedding: Array.from((await result.json() as {embedding: number[]}).embedding) || [], model: "Xenova/distiluse-base-multilingual-cased-v1" };
+  const result = (await response.json()) as EmbeddingsResponse;
+  return { embedding: result.data[0]?.embedding || [], model: result.model };
 };
 
 //TODO: Check result of this please
