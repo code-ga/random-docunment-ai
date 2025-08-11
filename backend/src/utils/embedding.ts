@@ -74,7 +74,7 @@ export const findSimilarDocuments = async (content: string, workspaceId: string)
     .from(table.chunks)
     .where(and(eq(table.chunks.workspaceId, workspaceId)))
     .orderBy((t) => desc(t.similarity))
-    .rightJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
+    .fullJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
     .limit(4);
   console.log("embedding.ts -> findSimilarDocuments -> similarGuides", similarGuides);
   return similarGuides;

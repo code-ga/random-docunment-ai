@@ -6,7 +6,6 @@ import { BASE_API_URL } from "../../constant";
 import { useChat } from "../../contexts/ChatContext";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeStarryNight from "rehype-starry-night";
 
 interface Message {
   id: string;
@@ -360,7 +359,7 @@ export default function ChatBox({ workspaceId }: ChatBoxProps) {
               >
                 <p className="whitespace-pre-wrap">
                   <Suspense fallback={<div>Loading...</div>}>
-                    <Markdown remarkPlugins={[remarkGfm, rehypeStarryNight]}>
+                    <Markdown remarkPlugins={[remarkGfm]}>
                       {message.content}
                     </Markdown>
                   </Suspense>
