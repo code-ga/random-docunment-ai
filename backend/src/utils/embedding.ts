@@ -69,13 +69,20 @@ export async function generateEmbedding(data: {
 export const findSimilarDocuments = async (content: string, workspaceId: string) => {
   const embedding = await generateEmbedding({ inputs: content });
   const similarity = sql<number>`1 - (${cosineDistance(table.chunks.embedding, embedding.embedding)})`;
-  const similarGuides = await db
+  const similarChunks = await db
     .select({ content: table.chunks.content, id: table.chunks.id, documentId: table.chunks.documentId, similarity, fromLine: table.chunks.fromLine, toLine: table.chunks.toLine, index: table.chunks.index })
     .from(table.chunks)
     .where(and(eq(table.chunks.workspaceId, workspaceId)))
     .orderBy((t) => desc(t.similarity))
     .fullJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
     .limit(4);
-  console.log("embedding.ts -> findSimilarDocuments -> similarGuides", similarGuides);
-  return similarGuides;
+  const result = []
+  for (let i = 0; i < similarChunks.length; i++) {
+    const chunk = similarChunks[i];
+    if (!chunk?.documentId) continue
+    const document = await db.select().from(table.documents).where(eq(table.documents.id, chunk.documentId)).limit(1);
+    result.push({ ...chunk, document: document[0] });
+  }
+  console.log("embedding.ts -> findSimilarDocuments -> similarChunks", result);
+  return result
 };
