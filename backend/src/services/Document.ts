@@ -43,7 +43,7 @@ export class DocumentService {
       for (let i = 0; i < chunk.length; i++) {
         const chunkContent = chunk[i];
         if (!chunkContent) continue;
-        const chunkEmbedding = await generateEmbedding(chunkContent);
+        const chunkEmbedding = await generateEmbedding({ inputs: chunkContent });
         const insert = await db.insert(table.chunks)
           .values({
             content: chunkContent,

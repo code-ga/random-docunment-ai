@@ -25,31 +25,49 @@ export interface EmbeddingsResponse {
 }
 
 
-export const generateEmbedding = async (value: string): Promise<{ embedding: number[], model: string }> => {
-  const input = value
+// export const generateEmbedding = async (value: string): Promise<{ embedding: number[], model: string }> => {
+//   const input = value
 
-  const url = "http://embedder/v1/embeddings";
-  const body = JSON.stringify({
-    input: [input],
-    model: "Alibaba-NLP/gte-multilingual-base",
-    encoding_format: "float",
-  });
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-    body,
-    verbose: true, // logs request/res headers to stdout :contentReference[oaicite:1]{index=1}
-  });
-  const result = (await response.json()) as EmbeddingsResponse;
-  return { embedding: result.data[0]?.embedding || [], model: result.model };
-};
+//   const url = "http://embedder/v1/embeddings";
+//   const body = JSON.stringify({
+//     input: [input],
+//     model: "Alibaba-NLP/gte-multilingual-base",
+//     encoding_format: "float",
+//   });
+//   const response = await fetch(url, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Accept": "application/json",
+//     },
+//     body,
+//     verbose: true, // logs request/res headers to stdout :contentReference[oaicite:1]{index=1}
+//   });
+//   const result = (await response.json()) as EmbeddingsResponse;
+//   return { embedding: result.data[0]?.embedding || [], model: result.model };
+// };
+
+export async function generateEmbedding(data: {
+  inputs: string
+}) {
+  const response = await fetch(
+    "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-large/pipeline/feature-extraction",
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HUGGINGFACE_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+  const result = await response.json();
+  return { embedding: result as number[], model: "intfloat/multilingual-e5-large" };
+}
 
 //TODO: Check result of this please
 export const findSimilarDocuments = async (content: string, workspaceId: string) => {
-  const embedding = await generateEmbedding(content);
+  const embedding = await generateEmbedding({ inputs: content });
   const similarity = sql<number>`1 - (${cosineDistance(table.chunks.embedding, embedding.embedding)})`;
   const similarGuides = await db
     .select({ content: table.chunks.content, id: table.chunks.id, documentId: table.chunks.documentId, similarity })

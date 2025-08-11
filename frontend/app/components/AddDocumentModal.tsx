@@ -3,7 +3,7 @@ import { useState } from "react";
 interface AddDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (title: string, content?: string, file?: File) => void;
+  onAdd: (title: string, content?: string, file?: File) => Promise<void>;
 }
 
 export default function AddDocumentModal({
@@ -16,10 +16,11 @@ export default function AddDocumentModal({
   const [textContent, setTextContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!title.trim()) {
       setError("Document title is required");
       return;
@@ -35,12 +36,22 @@ export default function AddDocumentModal({
       return;
     }
 
-    onAdd(
-      title,
-      inputType === "text" ? textContent : undefined,
-      inputType === "file" ? selectedFile || undefined : undefined
-    );
-    handleClose();
+    setIsLoading(true);
+    try {
+      await onAdd(
+        title,
+        inputType === "text" ? textContent : undefined,
+        inputType === "file" ? selectedFile || undefined : undefined
+      );
+    } catch (err) {
+      setError(
+        "An error occurred while adding the document. Please try again."
+      );
+      console.error("Error in handleAdd:", err);
+    } finally {
+      setIsLoading(false);
+      handleClose();
+    }
   };
 
   const handleClose = () => {
@@ -49,6 +60,7 @@ export default function AddDocumentModal({
     setSelectedFile(null);
     setError("");
     setInputType("text");
+    setIsLoading(false);
     onClose();
   };
 
@@ -157,14 +169,26 @@ export default function AddDocumentModal({
           <button
             onClick={handleClose}
             className="text-sm text-gray-400 hover:text-white"
+            disabled={isLoading}
           >
             Cancel
           </button>
           <button
             onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold"
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center"
+            disabled={isLoading}
           >
-            Add
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Adding...
+              </>
+            ) : (
+              "Add"
+            )}
           </button>
         </div>
       </div>
