@@ -1,5 +1,5 @@
 import { Send, Bot, User, Loader2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSession } from "../../lib/auth";
 import { client } from "../../lib/client";
 import { BASE_API_URL } from "../../constant";
@@ -7,8 +7,6 @@ import { useChat } from "../../contexts/ChatContext";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeStarryNight from "rehype-starry-night";
-
-
 
 interface Message {
   id: string;
@@ -361,9 +359,11 @@ export default function ChatBox({ workspaceId }: ChatBoxProps) {
                 }`}
               >
                 <p className="whitespace-pre-wrap">
-                  <Markdown remarkPlugins={[remarkGfm,rehypeStarryNight]}>
-                    {message.content}
-                  </Markdown>
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <Markdown remarkPlugins={[remarkGfm, rehypeStarryNight]}>
+                      {message.content}
+                    </Markdown>
+                  </Suspense>
                 </p>
                 <p className="text-xs opacity-70 mt-1">
                   {/* {message.createdAt?.toLocaleTimeString()} */}
