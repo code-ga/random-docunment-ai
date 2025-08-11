@@ -70,11 +70,11 @@ export const findSimilarDocuments = async (content: string, workspaceId: string)
   const embedding = await generateEmbedding({ inputs: content });
   const similarity = sql<number>`1 - (${cosineDistance(table.chunks.embedding, embedding.embedding)})`;
   const similarGuides = await db
-    .select({ content: table.chunks.content, id: table.chunks.id, documentId: table.chunks.documentId, similarity })
+    .select({ content: table.chunks.content, id: table.chunks.id, documentId: table.chunks.documentId, similarity, fromLine: table.chunks.fromLine, toLine: table.chunks.toLine, index: table.chunks.index })
     .from(table.chunks)
     .where(and(eq(table.chunks.workspaceId, workspaceId)))
     .orderBy((t) => desc(t.similarity))
-    .leftJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
+    .rightJoin(table.documents, eq(table.chunks.documentId, table.documents.id))
     .limit(4);
   console.log("embedding.ts -> findSimilarDocuments -> similarGuides", similarGuides);
   return similarGuides;

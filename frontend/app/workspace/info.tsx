@@ -108,7 +108,7 @@ export default function WorkspaceInfoPage() {
 
   const handleDelete = async (id: string) => {
     // setDocuments((docs) => docs.filter((d) => d.id !== id));
-    const result = await client.api.document.delete({ id }).delete();
+    const result = await client.api.document.delete.delete({ id });
     if (!result) {
       setError({
         message: "Failed to delete document",

@@ -5,8 +5,11 @@ import { table } from "../database/schema";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { generateEmbedding } from "../utils/embedding";
 
+const CHUNK_SIZE = 6000
+const CHUNK_OVERLAP = 100
+
 const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 6000, chunkOverlap: 1000,
+  chunkSize: CHUNK_SIZE, chunkOverlap: CHUNK_OVERLAP,
   separators: ["\n\n", "\n", " ", ""]
 });
 export class DocumentService {
@@ -52,8 +55,8 @@ export class DocumentService {
             workspaceId,
             embedding: chunkEmbedding.embedding,
             embedder: chunkEmbedding.model,
-            fromLine: i * 1000,
-            toLine: (i + 1) * 1000,
+            fromLine: i * (CHUNK_SIZE - CHUNK_OVERLAP),
+            toLine: (i + 1) * (CHUNK_SIZE - CHUNK_OVERLAP) - 1,
             index: i
           })
           .returning();

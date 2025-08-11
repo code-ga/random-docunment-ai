@@ -220,31 +220,35 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           const { id } = ctx.params;
           const { name } = ctx.body;
           const { id: userId } = ctx.user;
-          const workspacePublic = await ctx.workspaceService.isWorkspacePublic(id);
+          const document = await ctx.documentService.getDocumentById(id);
+          if (!document.length || !document[0]) {
+            return ctx.status(404, { status: 404, type: "error", success: false, message: "Document not found" });
+          }
+          const workspacePublic = await ctx.workspaceService.isWorkspacePublic(document[0].workspaceId);
           if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
           }
           if (workspacePublic.type == "Private" && workspacePublic.userID !== userId) {
             return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
           }
-          const alreadyExists = await ctx.documentService.getDocumentById(id);
-          if (!alreadyExists.length || !alreadyExists[0]) {
+
+          if (!document.length || !document[0]) {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "Document not found" });
           }
-          if (alreadyExists[0].userId !== userId) {
+          if (document[0].userId !== userId) {
             return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
           }
           if (!name) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "Name is required" });
           }
-          const document = await ctx.documentService.updateDocument(id, name);
+          const updatedDocument = await ctx.documentService.updateDocument(id, name);
           return {
             status: 200,
             message: "Document updated successfully",
             success: true,
             type: "success",
             data: {
-              document: document
+              document: updatedDocument
             }
           }
         },
@@ -263,8 +267,8 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
             },
           }
         )
-        .delete("/delete/:id", async (ctx) => {
-          const { id } = ctx.params;
+        .delete("/delete", async (ctx) => {
+          const { id } = ctx.body;
           const { id: userId } = ctx.user;
           const workspacePublic = await ctx.workspaceService.isWorkspacePublic(id);
           if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
@@ -292,7 +296,7 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
           }
         },
           {
-            params: t.Object({
+            body: t.Object({
               id: t.String()
             }),
             response: {
