@@ -106,14 +106,83 @@ export default function WorkspaceInfoPage() {
     fetchWorkspace();
   }, [id]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    // setDocuments((docs) => docs.filter((d) => d.id !== id));
+    const result = await client.api.document.delete({ id }).delete();
+    if (!result) {
+      setError({
+        message: "Failed to delete document",
+        status: 500,
+      });
+      return;
+    }
+    if (result.error) {
+      setError({
+        message: result.error.value.message || "Something went wrong.",
+        status: result.error.status,
+      });
+      return;
+    }
+    if (!result.data.success || !result.data.data) {
+      setError({
+        message: result.data.message || "Something went wrong.",
+        status: result.data.status,
+      });
+      return;
+    }
     setDocuments((docs) => docs.filter((d) => d.id !== id));
   };
 
-  const handleEditDocument = (title: string) => {
+  const handleEditDocument = async (title: string) => {
     if (editDoc) {
+      // setDocuments((docs) =>
+      //   docs.map((d) => (d.id === editDoc.id ? { ...d, title } : d))
+      // );
+      // setEditDoc(null);
+
+      const result = await client.api.document
+        .update({ id: editDoc.id })
+        .put({ name: title });
+      if (!result) {
+        setError({
+          message: "Failed to update document",
+          status: 500,
+        });
+        return;
+      }
+      if (result.error) {
+        setError({
+          message: result.error.value.message || "Something went wrong.",
+          status: result.error.status,
+        });
+        return;
+      }
+      if (!result.data.success || !result.data.data) {
+        setError({
+          message: result.data.message || "Something went wrong.",
+          status: result.data.status,
+        });
+        return;
+      }
+
+      if (!result.data.data.document || !result.data.data.document[0]) {
+        setError({
+          message: result.data.message || "Something went wrong.",
+          status: result.data.status,
+        });
+        return;
+      }
+      if (!result.data.data) {
+        setError({
+          message: result.data.message || "Something went wrong.",
+          status: result.data.status,
+        });
+        return;
+      }
       setDocuments((docs) =>
-        docs.map((d) => (d.id === editDoc.id ? { ...d, title } : d))
+        docs.map((d) =>
+          d.id === editDoc.id ? result.data.data!.document[0] : d
+        )
       );
       setEditDoc(null);
     }

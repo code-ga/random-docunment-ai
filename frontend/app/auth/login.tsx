@@ -15,9 +15,9 @@ export function Login() {
       redirect("/dashboard");
     }
   }, [isPending, session]);
-  
-  if (isPending) return <LoadingPage></LoadingPage>
-  
+
+  if (isPending) return <LoadingPage></LoadingPage>;
+
   if (typeof window === "undefined") return null;
   const callbackURL = new URL(window ? window.location.href : "");
   // redirect to dashboard
@@ -144,6 +144,7 @@ export function Login() {
           {/* OAuth Buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <button
+              disabled
               style={{
                 background: "#fff",
                 color: "#222",
@@ -162,7 +163,7 @@ export function Login() {
               }}
             >
               <span role="img" aria-label="Google" style={{ marginRight: 8 }}>
-                🔵
+                🔵 (Unavailable)
               </span>
               Login with Google
             </button>
