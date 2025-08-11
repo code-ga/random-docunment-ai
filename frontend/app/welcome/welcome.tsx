@@ -26,12 +26,12 @@ export function Welcome() {
         <p className="text-gray-700 dark:text-gray-200 text-center max-w-md">
           Unlock your potential with personalized study plans, instant answers, and interactive learning tools. Let AI guide your journey, making learning efficient, engaging, and fun.
         </p>
-        <a
+        {/* <a
           href="#"
           className="mt-4 px-8 py-3 bg-indigo-600 text-white rounded-full text-lg font-semibold shadow hover:bg-indigo-700 transition-colors"
         >
           Get Started
-        </a>
+        </a> */}
         <a
           href="/login"
           className="mt-2 px-8 py-3 bg-white border border-indigo-600 text-indigo-700 rounded-full text-lg font-semibold shadow hover:bg-indigo-50 dark:bg-gray-800 dark:text-indigo-300 dark:border-indigo-400 transition-colors"
