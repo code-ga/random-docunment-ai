@@ -243,6 +243,7 @@ export const questionnaire = pgTable("questionnaire", {
   answer: text('answer').notNull(),
   falseAnswer: text('false_answer').notNull().array().$defaultFn(() => []),
   quizCollectionId: text('quiz_collection_id').notNull().references(() => quizCollection.id),
+  source: text('source'),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()

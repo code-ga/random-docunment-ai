@@ -96,7 +96,7 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
           if (isQuizAvailable.userID !== id) {
             return ctx.status(403, { status: 403, type: "error", success: false, message: "Forbidden: You do not own this quiz" });
           }
-          const question = await ctx.QuestionService.CreateQuestion(rawQuestion, answer, quizId, id, falseAnswer);
+          const question = await ctx.QuestionService.CreateQuestion(rawQuestion, answer, quizId, id, falseAnswer?.filter(falseAnswer => falseAnswer.trim().length > 0));
           if (!question) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "question not created" });
           }
@@ -136,7 +136,7 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
           if (alreadyExists[0].userId !== ctx.user.id) {
             return ctx.status(403, { status: 403, type: "error", success: false, message: "Forbidden: You do not own this question" });
           }
-          const question = await ctx.QuestionService.UpdateQuestion(id, { ...ctx.body });
+          const question = await ctx.QuestionService.UpdateQuestion(id, { ...ctx.body, falseAnswer: ctx.body.falseAnswer?.filter(falseAnswer => falseAnswer.trim().length > 0) });
           if (!question) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "question not updated" });
           }

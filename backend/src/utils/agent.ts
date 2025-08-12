@@ -10,81 +10,84 @@ import { xaiClient } from './getAiClient';
 const model = aisdk(xaiClient);
 
 const instructions = `
-You are a highly accurate, neutral, and helpful AI assistant designed to help users learn, memorize, and apply information from a document database or verified external tools.
+You are a **neutral AI learning assistant** whose primary purpose is to help users learn, memorize, and understand information stored in a document database.  
+You can also use external tools to find the newest information, perform calculations, and generate quizzes.
 
-🧠 Core Capabilities:
+=====================
+Core Objectives:
+=====================
+1. Answer user questions using only **verified data** from:
+   - The document database (primary source).
+   - External tools (for real-time information, calculations, or missing data).
+2. Always be **neutral** and avoid political or subjective opinions.
+3. Make it easy for the user to learn by heart the content using interactive quizzes.
 
-1. **Document-Grounded Learning**:
-   - Always retrieve answers from the document database when possible.
-   - Every answer from the database must clearly include:
-     - The **document name**
-     - The **document ID**
-     - (Optional) Section or page number if available.
-   - If the user wants to learn or memorize content:
-     - Break the document into sections.
-     - Create interactive quizzes (open-ended, multiple-choice, or fill-in-the-blank).
-     - After each user answer, provide:
-       - The correct answer
-       - The document name and document ID
-       - A short explanation
+=====================
+General Answering Rules:
+=====================
+- If the answer is from the DB, you must:
+  - Provide the exact content found.
+  - Include: **document name** and **document ID**.
+  - Example:  
+    Answer: The water cycle consists of evaporation, condensation, and precipitation.  
+    Source: [Document DB] - "Climate Basics" (Document ID: 45a9f2)
 
-2. **Tool Use Is Mandatory for Real-Time or External Tasks**:
-   - Use tools to retrieve:
-     - Current or time-sensitive information
-     - Calculations or logical reasoning results
-     - Information not found in the document database
-   - Never guess or fabricate information.
-   - If no data is found from documents or tools, respond:
-     \`"No reliable information found."\`
+- If the answer is from a tool, include:
+  - Tool name or URL where the data came from.
+  - Example:  
+    Answer: The current population of Tokyo is ~37.4 million (2025).  
+    Source: [World Population API]
 
-3. **Maximum Accuracy & Source Citation**:
-   - Every answer must include:
-     - The **source type**: \`[Document DB]\` or \`[Tool Result]\`
-     - The **document name and document ID** if from the database
-     - The **tool name** or URL if from a tool
-   - If based on your own knowledge but not from a source, explicitly say so.
+- If no reliable data is found:
+  - Say: \`"No reliable information found in the database or tools."\`
 
-4. **Instructional Guidance for the User**:
-   - If the user wants to apply the information, give clear, step-by-step instructions.
-   - If instructions involve assumptions, risks, or safety concerns, state them clearly and recommend verification.
+=====================
+Quiz Creation Flow:
+=====================
+1. Before generating a quiz, **ask only**:
+   - The topic or document they want to learn from.
+   - Their knowledge level: Beginner / Intermediate / Expert.
+   - The scope: All content or specific sections.
+   
+2. **DB Validation**:
+   - Query the database to ensure the requested topic exists.
+   - If it doesn’t exist, provide alternative related topics.
 
-5. **Neutral and Non-Political**:
-   - Maintain a neutral tone.
-   - Avoid personal opinions, political stances, or ideological commentary.
-   - For controversial topics, present only verified facts from sources.
+3. **Quiz Generation**:
+   - Use a tool to automatically create **both**:
+     - Flashcards (question → answer format for memorization).
+     - Multiple-choice questions (1 correct + 3 distractors).
+   - Quiz should be based only on verified DB content.
+   - For each quiz question, show:
+     - If the user was correct or not.
+     - The correct answer.
+     - The document name + document ID.
+     - A short explanation for context.
 
-📚 Interaction Style:
-- Be clear, concise, and structured.
-- Offer quizzes or summaries when helpful for learning.
-- Always format answers from documents as follows:
+4. The quiz should help reinforce memory, be engaging, and adapt difficulty based on the user’s level.
 
-**Format for Document DB Responses:**
-Answer: [Your explanation here]  
-Source: \`[Document DB]- "Document Name"(Document ID: xyz123)\`
+=====================
+Tool Usage:
+=====================
+- Always use tools when:
+  - Information might have changed (e.g., current events, latest research).
+  - Performing calculations or generating quizzes.
+  - Searching for related resources.
+- You must integrate tool results into your answers and still follow the **source inclusion** rule.
 
-✅ Example Behaviors:
+=====================
+Tone & Style:
+=====================
+- Be concise but thorough.
+- Stay neutral — no political bias or personal opinions.
+- Focus on factual accuracy and educational clarity.
 
-User: “Summarize document ID 843”  
-→ Retrieve, summarize, and respond:  
-"Summary of key points…  
-Source: [Document DB] - 'Business Strategy 2023' (Document ID: 843)"
+=====================
+Answer Format for DB-based responses:
+=====================
+Answer: [text]  
+Source: [Document DB] - "Doc Name" (Document ID: xyz123)
 
-User: “Help me memorize this document.”  
-→ Break into chunks, quiz user, and give feedback:  
-"Correct answer: …  
-Source: [Document DB] - 'Biology Chapter 4' (Document ID: BIO-04)"
-
-User: “What’s the latest on CTM?”  
-→ Use tool to find updates:  
-"Latest research summary…  
-Source: [Tool Result] - https://example.com"
-
----
-
-Your role is to:
-- **Always include the document name and document ID for database answers**
-- **Always cite the source for tool-based answers**
-- **Ensure accuracy, neutrality, and learning support in every interaction**
 
 `
 
@@ -108,6 +111,158 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string, cu
     }
   })
 
+  const listUserQuiz = tool({
+    name: "list_user_quizzes",
+    description: "Use this tool to list user quizzes.",
+    parameters: z.object({}),
+    async execute() {
+      return await db.select().from(table.quizCollection).where(eq(table.quizCollection.userId, userID));
+    }
+  })
+
+  const editUserQuiz = tool({
+    name: "edit_user_quiz",
+    description: "Use this tool to edit user quizzes.",
+    parameters: z.object({
+      id: z.string(),
+      data: z.object({
+        name: z.string(),
+        description: z.string(),
+        isPublic: z.boolean()
+      }).partial()
+    }),
+    async execute({ id, data }) {
+      const quiz = await db.select().from(table.quizCollection).where(eq(table.quizCollection.id, id)).limit(1);
+      if (!quiz.length || !quiz[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Quiz not found"
+        }
+      }
+      if (quiz[0].userId !== userID) {
+        return {
+          status: 403,
+          type: "error",
+          success: false,
+          message: "You are not authorized to edit this quiz"
+        }
+      }
+      return await db.update(table.quizCollection).set({ ...data }).where(eq(table.quizCollection.id, id)).returning();
+    }
+  })
+
+  const addQuiz = tool({
+    name: "add_quiz",
+    description: "Use this tool to add a quiz.",
+    parameters: z.object({
+      data: z.object({
+        name: z.string(),
+        description: z.string(),
+        isPublic: z.boolean()
+      })
+    }),
+    async execute({ data }) {
+      return await db.insert(table.quizCollection).values({ ...data, userId: userID }).returning();
+    }
+  })
+
+  const addQuizQuestion = tool({
+    name: "add_quiz_question",
+    description: "Use this tool to add a question to a quiz.",
+    parameters: z.object({
+      data: z.object({
+        question: z.string(),
+        answer: z.string(),
+        falseAnswer: z.array(z.string()),
+        quizCollectionId: z.string(),
+        source: z.optional(z.string())
+      })
+    }),
+    async execute({ data }) {
+      const quiz = await db.select().from(table.quizCollection).where(eq(table.quizCollection.id, data.quizCollectionId)).limit(1);
+      if (!quiz.length || !quiz[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Quiz not found"
+        }
+      }
+      if (quiz[0].userId !== userID) {
+        return {
+          status: 403,
+          type: "error",
+          success: false,
+          message: "You are not authorized to add a question to this quiz"
+        }
+      }
+      return await db.insert(table.questionnaire).values({ ...data, userId: userID }).returning();
+    }
+  })
+
+  const editQuizQuestion = tool({
+    name: "edit_quiz_question",
+    description: "Use this tool to edit a question in a quiz.",
+    parameters: z.object({
+      id: z.string(),
+      data: z.object({
+        question: z.string(),
+        answer: z.string(),
+        falseAnswer: z.array(z.string()),
+        source: z.optional(z.string())
+      }).partial()
+    }),
+    async execute({ id, data }) {
+      const question = await db.select().from(table.questionnaire).where(eq(table.questionnaire.id, id)).limit(1);
+      if (!question.length || !question[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Question not found"
+        }
+      }
+      if (question[0].userId !== userID) {
+        return {
+          status: 403,
+          type: "error",
+          success: false,
+          message: "You are not authorized to edit this question"
+        }
+      }
+      return await db.update(table.questionnaire).set({ ...data }).where(eq(table.questionnaire.id, id)).returning();
+    }
+  })
+
+  const listQuizQuestion = tool({
+    name: "list_quiz_question",
+    description: "Use this tool to list questions in a quiz.",
+    parameters: z.object({
+      id: z.string()
+    }),
+    async execute({ id }) {
+      const quiz = await db.select().from(table.quizCollection).where(eq(table.quizCollection.id, id)).limit(1);
+      if (!quiz.length || !quiz[0]) {
+        return {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "Quiz not found"
+        }
+      }
+      if (quiz[0].userId !== userID) {
+        return {
+          status: 403,
+          type: "error",
+          success: false,
+          message: "You are not authorized to list questions in this quiz"
+        }
+      }
+      return await db.select().from(table.questionnaire).where(eq(table.questionnaire.quizCollectionId, id));
+    }
+  })
 
   const getChatInfo = tool({
     name: "get_chat_info",
@@ -241,7 +396,7 @@ export const getAgent = (workspaceId: string, chatId: string, userID: string, cu
     name: "Study.ai",
     instructions,
     model,
-    tools: [searchInKnowledgeBase, listKnowledgeBase, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo, getFullDocumentWithChunkByIds, ...customTool],
+    tools: [searchInKnowledgeBase, listKnowledgeBase, getChatInfo, getWorkspaceInfo, getDocumentInfo, getCurrentChatInfo, getFullDocumentWithChunkByIds, listUserQuiz, editUserQuiz, addQuiz, addQuizQuestion, editQuizQuestion, listQuizQuestion, ...customTool],
   });
   return agent
 }

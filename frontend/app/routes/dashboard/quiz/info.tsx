@@ -187,6 +187,17 @@ function EditQuestionModal({
     setFormData({ ...formData, falseAnswer: newFalseAnswers });
   };
 
+  const handleAddFalseAnswer = () => {
+    setFormData({ ...formData, falseAnswer: [...formData.falseAnswer, ""] });
+  };
+
+  const handleRemoveFalseAnswer = (index: number) => {
+    setFormData({
+      ...formData,
+      falseAnswer: formData.falseAnswer.filter((_, i) => i !== index),
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -238,15 +249,30 @@ function EditQuestionModal({
               Wrong Answers (Optional)
             </label>
             {formData.falseAnswer.map((falseAnswer, index) => (
-              <input
-                key={index}
-                type="text"
-                value={falseAnswer}
-                onChange={(e) => handleFalseAnswerChange(index, e.target.value)}
-                placeholder={`Wrong answer ${index + 1}`}
-                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
-              />
+              <div key={index} className="flex items-center mb-2">
+                <input
+                  type="text"
+                  value={falseAnswer}
+                  onChange={(e) => handleFalseAnswerChange(index, e.target.value)}
+                  placeholder={`Wrong answer ${index + 1}`}
+                  className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFalseAnswer(index)}
+                  className="ml-2 text-red-500 hover:text-red-700"
+                >
+                  ×
+                </button>
+              </div>
             ))}
+            <button
+              type="button"
+              onClick={handleAddFalseAnswer}
+              className="mt-2 text-sm text-blue-400 hover:text-blue-200"
+            >
+              + Add false answer
+            </button>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
