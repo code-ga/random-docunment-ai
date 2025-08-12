@@ -4,6 +4,7 @@ import { userRouter } from "./user";
 import { workspaceRouter } from "./workspace";
 import { documentRouter } from "./document";
 import { chatRouter } from "./chats";
+import { quizRouter } from "./quiz";
 
 const apiRouter = new Elysia({
   prefix: "/api", detail: {
@@ -16,5 +17,6 @@ const apiRouter = new Elysia({
   .use(workspaceRouter)
   .use(documentRouter)
   .use(chatRouter)
+  .use(quizRouter)
 
 export default apiRouter

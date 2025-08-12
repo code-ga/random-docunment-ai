@@ -226,6 +226,42 @@ export const messageRelations = relations(messages, ({ one }) => ({
   }),
 }))
 
+export const quizCollection = pgTable("quiz_collection", {
+  id: text("id").primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
+  userId: text('user_id').notNull().references(() => user.id),
+  questionnaireIds: text('questionnaire_ids').notNull().array().notNull().$defaultFn(() => []),
+  public: boolean('public').notNull().$default(() => true),
+});
+
+export const questionnaire = pgTable("questionnaire", {
+  id: text("id").primaryKey(),
+  question: text('question').notNull(),
+  answer: text('answer').notNull(),
+  falseAnswer: text('false_answer').notNull().array().$defaultFn(() => []),
+  quizCollectionId: text('quiz_collection_id').notNull().references(() => quizCollection.id),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull()
+});
+
+export const quizCollectionRelations = relations(quizCollection, ({ one, many }) => ({
+  user: one(user, {
+    fields: [quizCollection.userId],
+    references: [user.id],
+  }),
+  questionnaires: many(questionnaire),
+}))
+
+export const questionnaireRelations = relations(questionnaire, ({ one }) => ({
+  quizCollection: one(quizCollection, {
+    fields: [questionnaire.quizCollectionId],
+    references: [quizCollection.id],
+  }),
+}))
+
 export const dbRelations = {
   user: userRelations,
   account: accountRelations,
@@ -247,7 +283,9 @@ export const table = {
   documents,
   chats,
   messages,
-  chunks
+  chunks,
+  quizCollection,
+  questionnaire
 } as const
 
 export type Table = typeof table

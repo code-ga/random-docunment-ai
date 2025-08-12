@@ -47,3 +47,11 @@ export type Chat = Static<typeof chatSelectType>
 export const messageSelectType = createSelectSchema(table.messages);
 
 export type Message = Static<typeof messageSelectType>
+
+export const quizCollectionSelectType = createSelectSchema(table.quizCollection)
+
+export type QuizCollection = Static<typeof quizCollectionSelectType>
+
+export const questionSelectType = createSelectSchema(table.questionnaire)
+
+export type Question = Static<typeof questionSelectType>
