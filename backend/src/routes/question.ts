@@ -87,7 +87,8 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
       app.resolve(userMiddleware)
         .post("/create", async (ctx) => {
           const { id } = ctx.user;
-          const isQuizAvailable = await ctx.QuizService.isQuizAvailable(id);
+          const { quizId, question: rawQuestion, answer, falseAnswer } = ctx.body;
+          const isQuizAvailable = await ctx.QuizService.isQuizAvailable(quizId);
 
           if (isQuizAvailable.type == "quiz_not_found") {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "quiz not found" });
@@ -95,7 +96,6 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
           if (isQuizAvailable.userID !== id) {
             return ctx.status(403, { status: 403, type: "error", success: false, message: "Forbidden: You do not own this quiz" });
           }
-          const { quizId, question: rawQuestion, answer, falseAnswer } = ctx.body;
           const question = await ctx.QuestionService.CreateQuestion(rawQuestion, answer, quizId, id, falseAnswer);
           if (!question) {
             return ctx.status(400, { status: 400, type: "error", success: false, message: "question not created" });
