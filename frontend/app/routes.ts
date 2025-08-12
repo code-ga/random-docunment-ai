@@ -13,6 +13,7 @@ export default [
       ]),
       ...prefix("quiz", [
         index("routes/dashboard/quiz/index.tsx"),
+        route("create", "routes/dashboard/quiz/create.tsx"),
       ])
     ]),
   ])
