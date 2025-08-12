@@ -1,360 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { Link, useParams } from "react-router";
 import { client } from "~/lib/client";
 import type { Question, QuizCollection } from "@/index";
 import AddQuestionModal from "../../../components/AddQuestionModal";
-import { useParams } from "react-router";
-
-interface EditQuestionModalProps {
-  question: Question | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (
-    updatedQuestion: Partial<{
-      question: string;
-      answer: string;
-      falseAnswer: string[];
-    }>
-  ) => void;
-}
-
-interface EditQuizModalProps {
-  quiz: QuizCollection | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (
-    updatedQuiz: Partial<{
-      name: string;
-      description: string;
-      isPublic: boolean;
-    }>
-  ) => void;
-}
-
-function EditQuizModal({ quiz, isOpen, onClose, onSave }: EditQuizModalProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    isPublic: true,
-  });
-
-  useEffect(() => {
-    if (quiz) {
-      setFormData({
-        name: quiz.name || "",
-        description: quiz.description || "",
-        isPublic: quiz.public ?? true,
-      });
-    }
-  }, [quiz]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      name: formData.name,
-      description: formData.description,
-      isPublic: formData.isPublic,
-    });
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Edit Quiz Collection</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Quiz Name *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder="Enter a description for your quiz..."
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={formData.isPublic}
-                onChange={(e) =>
-                  setFormData({ ...formData, isPublic: e.target.checked })
-                }
-                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <span className="text-sm font-medium text-gray-300">
-                Make this quiz public
-              </span>
-            </label>
-            <p className="text-xs text-gray-400 mt-1 ml-7">
-              Public quizzes can be viewed and taken by anyone
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
-
-function EditQuestionModal({
-  question,
-  isOpen,
-  onClose,
-  onSave,
-}: EditQuestionModalProps) {
-  const [formData, setFormData] = useState({
-    question: "",
-    answer: "",
-    falseAnswer: ["", "", ""],
-  });
-
-  useEffect(() => {
-    if (question) {
-      setFormData({
-        question: question.question || "",
-        answer: question.answer || "",
-        falseAnswer:
-          (question.falseAnswer || [])?.length >= 3
-            ? (question.falseAnswer || []).slice(0, 3)
-            : [...(question.falseAnswer || []), "", "", ""].slice(0, 3),
-      });
-    }
-  }, [question]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const filteredFalseAnswers = formData.falseAnswer.filter(
-      (answer) => answer.trim() !== ""
-    );
-    onSave({
-      question: formData.question,
-      answer: formData.answer,
-      falseAnswer: filteredFalseAnswers,
-    });
-  };
-
-  const handleFalseAnswerChange = (index: number, value: string) => {
-    const newFalseAnswers = [...formData.falseAnswer];
-    newFalseAnswers[index] = value;
-    setFormData({ ...formData, falseAnswer: newFalseAnswers });
-  };
-
-  const handleAddFalseAnswer = () => {
-    setFormData({ ...formData, falseAnswer: [...formData.falseAnswer, ""] });
-  };
-
-  const handleRemoveFalseAnswer = (index: number) => {
-    setFormData({
-      ...formData,
-      falseAnswer: formData.falseAnswer.filter((_, i) => i !== index),
-    });
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Edit Question</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Question
-            </label>
-            <textarea
-              value={formData.question}
-              onChange={(e) =>
-                setFormData({ ...formData, question: e.target.value })
-              }
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Correct Answer
-            </label>
-            <input
-              type="text"
-              value={formData.answer}
-              onChange={(e) =>
-                setFormData({ ...formData, answer: e.target.value })
-              }
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Wrong Answers (Optional)
-            </label>
-            {formData.falseAnswer.map((falseAnswer, index) => (
-              <div key={index} className="flex items-center mb-2">
-                <input
-                  type="text"
-                  value={falseAnswer}
-                  onChange={(e) => handleFalseAnswerChange(index, e.target.value)}
-                  placeholder={`Wrong answer ${index + 1}`}
-                  className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFalseAnswer(index)}
-                  className="ml-2 text-red-500 hover:text-red-700"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddFalseAnswer}
-              className="mt-2 text-sm text-blue-400 hover:text-blue-200"
-            >
-              + Add false answer
-            </button>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-interface QuestionCardProps {
-  question: Question;
-  onEdit: (question: Question) => void;
-  onDelete: (id: string) => void;
-}
-
-function QuestionCard({ question, onEdit, onDelete }: QuestionCardProps) {
-  return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow duration-200">
-      <div className="mb-3">
-        <h3 className="text-lg font-semibold text-white mb-2">Question:</h3>
-        <p className="text-gray-300 text-sm">{question.question}</p>
-      </div>
-
-      <div className="mb-3">
-        <h4 className="text-md font-medium text-green-400 mb-1">
-          Correct Answer:
-        </h4>
-        <p className="text-gray-300 text-sm">{question.answer}</p>
-      </div>
-
-      {question.falseAnswer && question.falseAnswer.length > 0 && (
-        <div className="mb-3">
-          <h4 className="text-md font-medium text-red-400 mb-1">
-            Wrong Answers:
-          </h4>
-          <ul className="text-gray-300 text-sm space-y-1">
-            {question.falseAnswer.map((falseAns, index) => (
-              <li key={index} className="flex items-center">
-                <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
-                {falseAns}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center pt-3 border-t border-gray-700">
-        <p className="text-gray-500 text-xs">
-          Created: {new Date(question.createdAt).toLocaleDateString()}
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onEdit(question)}
-            className="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onDelete(question.id)}
-            className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import EditQuizModal from "../../../components/Quiz/EditQuizModal";
+import EditQuestionModal from "../../../components/Quiz/EditQuestionModal";
+import QuestionCard from "../../../components/Quiz/QuestionCard";
 
 export default function QuizCollectionPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -420,7 +71,6 @@ export default function QuizCollectionPage() {
       setQuestions(questionsResponse.data.data.question);
     } catch (err) {
       setError("Failed to load quiz data. Please try again later.");
-      console.error("Error fetching quiz data:", err);
     } finally {
       setLoading(false);
     }
@@ -463,7 +113,6 @@ export default function QuizCollectionPage() {
       }
       setIsAddQuestionModalOpen(false);
     } catch (err) {
-      console.error(err);
       alert("Error adding question");
     }
   };
@@ -498,7 +147,6 @@ export default function QuizCollectionPage() {
       setQuiz(response.data.data.quiz[0]);
       setIsQuizModalOpen(false);
     } catch (err) {
-      console.error("Error updating quiz:", err);
       alert("Failed to update quiz. Please try again.");
     }
   };
@@ -542,7 +190,6 @@ export default function QuizCollectionPage() {
       setIsQuestionModalOpen(false);
       setEditingQuestion(null);
     } catch (err) {
-      console.error("Error updating question:", err);
       alert("Failed to update question. Please try again.");
     }
   };
@@ -564,7 +211,6 @@ export default function QuizCollectionPage() {
 
         setQuestions(questions.filter((q) => q.id !== id));
       } catch (err) {
-        console.error("Error deleting question:", err);
         alert("Failed to delete question. Please try again.");
       }
     }
@@ -644,6 +290,12 @@ export default function QuizCollectionPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Link
+              to={"./flashcard"}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+            >
+              Flashcard
+            </Link>
             <button
               onClick={handleEditQuiz}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"

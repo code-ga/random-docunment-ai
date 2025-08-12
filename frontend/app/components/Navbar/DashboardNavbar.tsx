@@ -29,9 +29,17 @@ export const DashboardNavbar = () => {
     <nav className="bg-[#0f172a] text-white px-6 py-4 shadow-md">
       <div className="flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-blue-400">
-          study.ai
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="text-2xl font-bold text-blue-400">
+            study.ai
+          </Link>
+          <Link to="/dashboard" className="text-lg  text-blue-400">
+            workspaces
+          </Link>
+          <Link to="/dashboard/quiz" className="text-lg  text-blue-400">
+            quizzes
+          </Link>
+        </div>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-x-6">

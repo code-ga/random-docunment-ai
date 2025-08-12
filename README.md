@@ -10,7 +10,7 @@ Study.AI comes equipped with a variety of features aimed at improving user inter
 - **Document Handling**: Upload, view, and manage documents within your workspaces. This feature supports RAG your document
 - **Interactive Chat**: Engage in real-time conversations within workspaces. The chat system supports discussions, queries, and AI-driven assistance to enhance learning.
 - **User Authentication**: Secure login and user management to ensure that your data and interactions are protected.
-
+- **Quiz**: Add quizzes to your documents for interactive learning and assessment.
 ## Deployment
 
 Study.AI is designed to be deployed using Docker, which simplifies the setup process across different environments. Follow these steps to deploy the project:
