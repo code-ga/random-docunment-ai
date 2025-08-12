@@ -14,7 +14,7 @@ export default [
       ...prefix("quiz", [
         index("routes/dashboard/quiz/index.tsx"),
         route("create", "routes/dashboard/quiz/create.tsx"),
-        route(":id", "routes/dashboard/quiz/collection.tsx"),
+        route(":id", "routes/dashboard/quiz/info.tsx"),
       ])
     ]),
   ])

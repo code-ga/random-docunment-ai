@@ -87,11 +87,12 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
       app.resolve(userMiddleware)
         .post("/create", async (ctx) => {
           const { id } = ctx.user;
-          const quiz = await ctx.QuizService.getQuizzesByID(id);
-          if (!quiz.length || !quiz[0]) {
+          const isQuizAvailable = await ctx.QuizService.isQuizAvailable(id);
+
+          if (isQuizAvailable.type == "quiz_not_found") {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "quiz not found" });
           }
-          if (quiz[0].userId !== id) {
+          if (isQuizAvailable.userID !== id) {
             return ctx.status(403, { status: 403, type: "error", success: false, message: "Forbidden: You do not own this quiz" });
           }
           const { quizId, question: rawQuestion, answer, falseAnswer } = ctx.body;

@@ -23,7 +23,7 @@ const CreateQuizCollection: React.FC = () => {
       const quizData = {
         name: collectionName,
         description: description || "",
-        isPublic: false, // Default to private; can be modified as needed
+        isPublic: true, // Default to private; can be modified as needed
       };
 
       // Simulate API call to backend (replace with actual API client call)

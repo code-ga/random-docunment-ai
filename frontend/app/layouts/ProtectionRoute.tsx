@@ -20,14 +20,14 @@ export default function ProtectionRoute() {
       <ErrorPage message={error.message} status={error.status}></ErrorPage>
     );
   }
-  if (!data) {
-    return (
-      <ErrorPage
-        message="Unauthorized Access: Token is missing"
-        status={401}
-      ></ErrorPage>
-    );
-  }
+  // if (!data) {
+  //   return (
+  //     <ErrorPage
+  //       message="Unauthorized Access: Token is missing"
+  //       status={401}
+  //     ></ErrorPage>
+  //   );
+  // }
   return pathname.startsWith("/dashboard") ? (
     <main className="bg-[#0f172a] text-white min-h-screen">
       <DashboardNavbar></DashboardNavbar>

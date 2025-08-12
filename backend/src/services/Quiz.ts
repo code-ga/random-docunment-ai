@@ -41,7 +41,8 @@ export class QuizService {
     if (quiz[0].public) {
       return {
         success: true,
-        type: "Public"
+        type: "Public",
+        userID: quiz[0].userId
       } as const;
     }
     return {
