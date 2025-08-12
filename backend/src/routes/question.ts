@@ -22,9 +22,9 @@ export const questionRouter = new Elysia({ prefix: "/question", name: "question/
       return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
     }
     const question = await ctx.QuestionService.GetQuestionsByQuizID(id);
-    if (!question.length || !question[0]) {
-      return ctx.status(404, { status: 404, type: "error", success: false, message: "question not found" });
-    }
+    // if (!question.length || !question[0]) {
+    //   return ctx.status(404, { status: 404, type: "error", success: false, message: "question not found" });
+    // }
 
 
     return {
