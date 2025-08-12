@@ -30,7 +30,7 @@ export class QuizService {
       updatedAt: new Date()
     }).returning();
   }
-  async isQuizAvailable(id: string, userId: string) {
+  async isQuizAvailable(id: string) {
     const quiz = await db.select().from(table.quizCollection).where(eq(table.quizCollection.id, id)).limit(1);
     if (!quiz || !quiz.length || !quiz[0]) {
       return {

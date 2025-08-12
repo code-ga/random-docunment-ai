@@ -42,12 +42,12 @@ export default function QuizIndex() {
     fetchQuizzes();
   }, []);
 
-  const handleCreateQuiz = () => {
-    window.location.href = "/dashboard/quiz/create";
-  };
+  // const handleCreateQuiz = () => {
+  //   window.location.href = "/dashboard/quiz/create";
+  // };
 
   const handleEditQuiz = (id: string) => {
-    window.location.href = `/dashboard/quiz/edit/${id}`;
+    window.location.href = `/dashboard/quiz/${id}`;
   };
 
   const handleDeleteQuiz = async (id: string) => {
@@ -86,12 +86,12 @@ export default function QuizIndex() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">My Quizzes</h1>
-        <button
+        {/* <button
           onClick={handleCreateQuiz}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
         >
           Create New Quiz
-        </button>
+        </button> */}
       </div>
       <QuizList
         quizzes={quizzes}

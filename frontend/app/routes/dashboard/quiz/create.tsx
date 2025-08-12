@@ -64,10 +64,11 @@ const CreateQuizCollection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#111827] text-white">
-      <DashboardNavbar />
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Create New Quiz Collection</h1>
+      <main className="container mx-auto p-8 max-w-xl">
         <div className="bg-[#1f2937] p-6 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold mb-6">
+            Create New Quiz Collection
+          </h1>
           <form className="space-y-4">
             <div>
               <label

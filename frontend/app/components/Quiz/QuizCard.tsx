@@ -18,12 +18,16 @@ export default function QuizCard({ quiz, onEdit, onDelete }: QuizCardProps) {
         Created: {new Date(quiz.createdAt).toLocaleDateString()}
       </p>
       <div className="flex justify-between items-center">
-        <button
-          onClick={() => (window.location.href = `/dashboard/quiz/${quiz.id}`)}
-          className="text-blue-400 hover:text-blue-500 font-medium text-sm"
-        >
-          View Details
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() =>
+              (window.location.href = `/dashboard/quiz/${quiz.id}`)
+            }
+            className="text-green-400 hover:text-green-500 font-medium text-sm"
+          >
+            View Details
+          </button>
+        </div>
         <div className="flex gap-2">
           {onEdit && (
             <button
