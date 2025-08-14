@@ -7,4 +7,4 @@ const aiClient = createOpenRouter({
     'X-Title': 'Study AI', // Optional. Site title for rankings on openrouter.ai.
   }
 });
-export const aiModel = aiClient("openai/gpt-oss-20b:free");
+export const aiModel = aiClient("moonshotai/kimi-k2:free");
