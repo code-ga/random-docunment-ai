@@ -270,13 +270,6 @@ export const documentRouter = new Elysia({ prefix: "/document", name: "document/
         .delete("/delete", async (ctx) => {
           const { id } = ctx.body;
           const { id: userId } = ctx.user;
-          const workspacePublic = await ctx.workspaceService.isWorkspacePublic(id);
-          if (!workspacePublic || workspacePublic.type === "Workspace_not_found") {
-            return ctx.status(404, { status: 404, type: "error", success: false, message: "Workspace not found" });
-          }
-          if (workspacePublic.type == "Private" && workspacePublic.userID !== userId) {
-            return ctx.status(401, { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is invalid" });
-          }
           const alreadyExists = await ctx.documentService.getDocumentById(id);
           if (!alreadyExists.length || !alreadyExists[0]) {
             return ctx.status(404, { status: 404, type: "error", success: false, message: "Document not found" });
