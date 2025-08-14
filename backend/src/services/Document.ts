@@ -4,9 +4,24 @@ import { db } from "../database";
 import { table } from "../database/schema";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { generateEmbedding } from "../utils/embedding";
+import { aiClient } from "../utils/getAiClient";
+import { generateText } from "ai"
 
 const CHUNK_SIZE = 6000
 const CHUNK_OVERLAP = 100
+
+const systemPrompt = `
+You are an AI that summarizes text clearly and concisely.
+Rules:
+- Keep only key points, remove fluff.
+- Stay neutral, no opinions.
+- Use short, clear sentences.
+- Keep original tone.
+- If text is too short: "The text is too short to summarize."
+- If language unsupported: "Unsupported language."
+Output only the summary.
+`;
+
 
 const splitter = new RecursiveCharacterTextSplitter({
   chunkSize: CHUNK_SIZE, chunkOverlap: CHUNK_OVERLAP,
@@ -68,7 +83,12 @@ export class DocumentService {
         }
         chunkIDs.push(insert[0].id);
       }
-      return db.update(table.documents).set({ chunkIds: chunkIDs }).where(eq(table.documents.id, document[0]?.id)).returning();
+      const { text } = await generateText({
+        system: systemPrompt,
+        prompt: content,
+        model: aiClient
+      });
+      return db.update(table.documents).set({ chunkIds: chunkIDs, summary: text }).where(eq(table.documents.id, document[0]?.id)).returning();
     })
 
   }

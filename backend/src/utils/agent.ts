@@ -4,10 +4,10 @@ import { eq, inArray } from "drizzle-orm";
 import z from "zod";
 import { db, table } from "../database";
 import { findSimilarDocuments } from "./embedding";
-import { xaiClient } from './getAiClient';
+import { aiClient } from './getAiClient';
 
 
-const model = aisdk(xaiClient);
+const model = aisdk(aiClient);
 
 const instructions = `
 You are a **neutral AI learning assistant** whose primary purpose is to help users learn, memorize, and understand information stored in a document database.  
