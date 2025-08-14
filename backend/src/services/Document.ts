@@ -4,7 +4,7 @@ import { db } from "../database";
 import { table } from "../database/schema";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { generateEmbedding } from "../utils/embedding";
-import { aiClient } from "../utils/getAiClient";
+import { aiModel } from "../utils/getAiClient";
 import { generateText } from "ai"
 
 const CHUNK_SIZE = 6000
@@ -86,7 +86,7 @@ export class DocumentService {
       const { text } = await generateText({
         system: systemPrompt,
         prompt: content,
-        model: aiClient
+        model: aiModel
       });
       return db.update(table.documents).set({ chunkIds: chunkIDs, summary: text }).where(eq(table.documents.id, document[0]?.id)).returning();
     })
