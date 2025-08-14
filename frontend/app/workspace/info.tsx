@@ -198,12 +198,12 @@ export default function WorkspaceInfoPage() {
           .create({ id: workspace!.id })
           ["from-raw"].post({ name: title, content })
       : file
-      ? await client.api.document
-          .create({
-            id: workspace!.id,
-          })
-          ["from-file"].post({ name: title, file })
-      : null;
+        ? await client.api.document
+            .create({
+              id: workspace!.id,
+            })
+            ["from-file"].post({ name: title, file })
+        : null;
     if (!result) {
       setError({
         message: "Failed to create document",
@@ -268,10 +268,6 @@ export default function WorkspaceInfoPage() {
 
   return (
     <div className="bg-[#0f172a] min-h-screen px-6 py-2 text-white">
-      <h1 className="text-3xl font-bold text-white my-8">
-        This Feature is under maintenance because of this pull request
-        https://github.com/hackclub/ai/pull/24
-      </h1>
       <div className=" mx-auto space-y-8">
         {/* Workspace Header */}
         {workspace && (
