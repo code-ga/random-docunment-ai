@@ -93,7 +93,7 @@ export const verificationTokenRelations = relations(verification, ({ one }) => (
 export const workspace = pgTable("workspace", {
   id: text("id").primaryKey().$defaultFn(createId),
   name: text('name').notNull(),
-  userId: text('user_id').notNull().references(() => user.id),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   description: text('description'),
   public: boolean('public').notNull().$default(() => false),
   documentIds: text('document_ids').notNull().array().notNull().$defaultFn(() => []),
@@ -105,7 +105,7 @@ export const documents = pgTable("document", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   title: text('title').notNull().$defaultFn(() => createId()),
   // content: text('content').notNull(),
-  workspaceId: text('workspace_id').notNull().references(() => workspace.id),
+  workspaceId: text('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
   savingPath: text('saving_path'),
   // embedding: vector('embedding', { dimensions: 1536 }),
   // embedder: text('embedder'),
@@ -123,8 +123,8 @@ export const documents = pgTable("document", {
 export const chunks = pgTable("chunk", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   content: text('content').notNull(),
-  documentId: text('document_id').notNull().references(() => documents.id),
-  workspaceId: text('workspace_id').notNull().references(() => workspace.id),
+  documentId: text('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -142,8 +142,8 @@ export const chunks = pgTable("chunk", {
 // Chat table
 export const chats = pgTable('chats', {
   id: text("id").primaryKey().$defaultFn(() => createId()),
-  userId: text('user_id').notNull().references(() => user.id),
-  workspaceId: text('workspace_id').notNull().references(() => workspace.id),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
   title: text('title').notNull().$defaultFn(() => "New Chat"),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -232,7 +232,7 @@ export const quizCollection = pgTable("quiz_collection", {
   description: text('description'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  userId: text('user_id').notNull().references(() => user.id),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   questionnaireIds: text('questionnaire_ids').notNull().array().notNull().$defaultFn(() => []),
   public: boolean('public').notNull().$default(() => true),
 });
@@ -242,7 +242,7 @@ export const questionnaire = pgTable("questionnaire", {
   question: text('question').notNull(),
   answer: text('answer').notNull(),
   falseAnswer: text('false_answer').notNull().array().$defaultFn(() => []),
-  quizCollectionId: text('quiz_collection_id').notNull().references(() => quizCollection.id),
+  quizCollectionId: text('quiz_collection_id').notNull().references(() => quizCollection.id, { onDelete: 'cascade' }),
   source: text('source'),
   userId: text('user_id').notNull().references(() => user.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
