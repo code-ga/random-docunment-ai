@@ -16,6 +16,7 @@ interface Message {
   role: "user" | "assistant";
   content: string | null;
   index: number;
+  type?: "text" | "tool_call" | "tool_result";
 }
 
 interface Chat {
@@ -131,7 +132,14 @@ export default function ChatBox({ workspaceId }: ChatBoxProps) {
                       // Append to existing assistant message
                       return prev.map((msg, index) =>
                         index === prev.length - 1
-                          ? { ...msg, content: msg.content + chunk.content }
+                          ? {
+                              ...msg,
+                              content:
+                                chunk.type != msg.type
+                                  ? chunk.content
+                                : msg.content + chunk.content,
+                              type: chunk.type,
+                            }
                           : msg
                       );
                     } else {
@@ -147,6 +155,7 @@ export default function ChatBox({ workspaceId }: ChatBoxProps) {
                           createdAt: chunk.createdAt,
                           userId: chunk.userId,
                           name: chunk.name,
+                          type: chunk.type,
                         },
                       ];
                     }
@@ -226,6 +235,7 @@ export default function ChatBox({ workspaceId }: ChatBoxProps) {
       setMessages([]);
     }
   }, [selectedChatId]);
+
 
   const loadChatMessages = async (chatId: string) => {
     try {

@@ -5,8 +5,8 @@ import { userMiddleware } from "../middlewares/auth-middleware";
 import { chatService } from "../services/Chat";
 import { workspaceService } from "../services/Workspace";
 import { baseResponseType, chatSelectType, messageSelectType } from "../types";
-import { Agent, AgentInputItem, run, RunState, RunStreamEvent, tool } from "@openai/agents";
-import { getAgent } from "../utils/agent";
+import { streamChat } from "../utils/agent";
+import { ModelMessage, tool } from "ai"
 import { createId } from "@paralleldrive/cuid2";
 
 const messageType = z.union([
@@ -275,34 +275,41 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
           return
         }
         const messages = await ctx.data.chatService.getMessagesByChatId(chat.id);
-        const conversation: AgentInputItem[] = messages.map((message) => {
+        const conversation: ModelMessage[] = messages.map((message): ModelMessage => {
           if (message.role == "user") {
             return {
               role: "user",
-              content: message.content,
-              type: "message"
-            } as AgentInputItem
+              content: [
+                {
+                  type: "text",
+                  text: message.content
+                }
+              ],
+            }
           } else {
             return {
               role: message.role,
-              status: "completed",
               content: [
                 {
-                  type: "output_text",
+                  type: "text",
                   text: message.content,
                 },
               ],
-            } as AgentInputItem
+            }
           }
         }).concat({
           role: "user",
-          content: message,
-          type: "message"
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
         })
         const changeChatName = tool({
           name: "change_chat_name",
           description: "Use this tool to change the chat id.",
-          parameters: z.object({
+          inputSchema: z.object({
             chatName: z.string()
           }),
           async execute({ chatName }) {
@@ -315,7 +322,8 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
             return result
           }
         })
-        const response = await run(getAgent(chat.workspaceId, chatId!, session.user.id, [changeChatName]), conversation, { stream: true });
+        // conversation
+        const response = await (streamChat(chat.workspaceId, chatId!, session.user.id, { change_chat_name: changeChatName }, conversation));
         const { assistantMessage, userMessage } = await ctx.data.chatService.createUserAndChatBotMessage(chat.id, session.user.id, message, "");
         ctx.send({
           status: 200, type: "success", success: true, message: "Message sent successfully", data: {
@@ -323,52 +331,175 @@ export const chatRouter = new Elysia({ prefix: "/chats", name: "chats/router" })
             type: "USER_MESSAGE"
           }
         })
-        for await (const chunk of response.toStream()) {
+        for await (const chunk of response.fullStream) {
+          console.log(chunk)
           // console.log(chunk);
           // ctx.send(chunk);
-          if (chunk.type == "raw_model_stream_event") {
-            if (chunk.data.type == "model") {
-              // console.log("model", chunk.data.event)
+          // if (chunk.type == "raw_model_stream_event") {
+          //   if (chunk.data.type == "model") {
+          //     // console.log("model", chunk.data.event)
+          //   }
+          //   else if (chunk.data.type == "output_text_delta") {
+          //     // console.log("output_text_delta", chunk.data.delta)
+          // ctx.send({
+          //   status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+          //     message: {
+          //       ...assistantMessage,
+          //       content: chunk.data.delta
+          //     }
+          //     , type: "MESSAGE"
+          //   }
+          // });
+          //   }
+          //   else if (chunk.data.type == "response_done") {
+          //     console.log("response_done", chunk.data.response)
+          //   } else if (chunk.data.type == "response_started") {
+          //     // console.log(chunk.data.type)
+          //   }
+          // } else if (chunk.type == "agent_updated_stream_event") {
+          //   // console.log(inspect(chunk.agent));
+          // } else if (chunk.type == "run_item_stream_event") {
+          //   console.log("run_item_stream_event", JSON.stringify(chunk));
+          //   // chunk.name
+          // } else {
+          //   console.log(chunk);
+          // }
+          switch (chunk.type) {
+            case 'start': {
+              // handle start of stream
+              break;
             }
-            else if (chunk.data.type == "output_text_delta") {
-              // console.log("output_text_delta", chunk.data.delta)
+            case 'start-step': {
+              // handle start of step
+              break;
+            }
+            case 'text-start': {
+              // handle text start
+              break;
+            }
+            case 'text-delta': {
+              // handle text delta here
               ctx.send({
                 status: 200, type: "success", success: true, message: "Message sent successfully", data: {
                   message: {
                     ...assistantMessage,
-                    content: chunk.data.delta
+                    content: chunk.text,
+                    type: "text"
                   }
                   , type: "MESSAGE"
                 }
               });
+              break;
             }
-            else if (chunk.data.type == "response_done") {
-              console.log("response_done", chunk.data.response)
-            } else if (chunk.data.type == "response_started") {
-              // console.log(chunk.data.type)
+            case 'text-end': {
+              // handle text end
+              break;
             }
-          } else if (chunk.type == "agent_updated_stream_event") {
-            // console.log(inspect(chunk.agent));
-          } else if (chunk.type == "run_item_stream_event") {
-            console.log("run_item_stream_event", JSON.stringify(chunk));
-            // chunk.name
-          } else {
-            console.log(chunk);
+            case 'reasoning-start': {
+              // handle reasoning start
+              break;
+            }
+            case 'reasoning-delta': {
+              // handle reasoning delta here
+              break;
+            }
+            case 'reasoning-end': {
+              // handle reasoning end
+              break;
+            }
+            case 'source': {
+              // handle source here
+              break;
+            }
+            case 'file': {
+              // handle file here
+              break;
+            }
+            case 'tool-call': {
+              // switch (chunk.toolName) {
+              //   case 'cityAttractions': {
+              //     // handle tool call here
+              //     break;
+              //   }
+              // }
+              ctx.send({
+                status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+                  message: {
+                    ...assistantMessage,
+                    content: JSON.stringify(chunk),
+                    type: "tool_call"
+                  }
+                  , type: "MESSAGE"
+                }
+              });
+              break;
+            }
+            case 'tool-input-start': {
+              // handle tool input start
+              break;
+            }
+            case 'tool-input-delta': {
+              // handle tool input delta
+              break;
+            }
+            case 'tool-input-end': {
+              // handle tool input end
+              break;
+            }
+            case 'tool-result': {
+              // switch (chunk.toolName) {
+              //   case 'cityAttractions': {
+              //     // handle tool result here
+              //     break;
+              //   }
+              // }
+              ctx.send({
+                status: 200, type: "success", success: true, message: "Message sent successfully", data: {
+                  message: {
+                    ...assistantMessage,
+                    content: JSON.stringify(chunk),
+                    type: "tool_result"
+                  }
+                  , type: "MESSAGE"
+                }
+              });
+              break;
+            }
+            case 'tool-error': {
+              // handle tool error
+              break;
+            }
+            case 'finish-step': {
+              // handle finish step
+              break;
+            }
+            case 'finish': {
+              // handle finish here
+              break;
+            }
+            case 'error': {
+              // handle error here
+              break;
+            }
+            case 'raw': {
+              // handle raw value
+              break;
+            }
           }
-
         }
-        if (response.finalOutput) {
-          const update = await ctx.data.chatService.updateMessage(assistantMessage.id, response.finalOutput);
+        if (await response.text) {
+          const update = await ctx.data.chatService.updateMessage(assistantMessage.id, await response.text);
           ctx.send({
             status: 200, type: "success", success: true, message: "Message sent successfully", data: {
               message: {
                 ...update[0],
-                content: response.finalOutput
+                content: await response.text
               }
               , type: "FINAL_MESSAGE"
             }
           });
         }
+
       }
     }
   });

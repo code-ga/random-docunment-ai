@@ -12,6 +12,9 @@ async function query(data: {
       body: JSON.stringify(data),
     }
   );
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status} with body: ${await response.text()}`);
+  }
   const result = await response.json();
   return result as number[];
 }

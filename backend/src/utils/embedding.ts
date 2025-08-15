@@ -61,6 +61,9 @@ export async function generateEmbedding(data: {
       body: JSON.stringify(data),
     }
   );
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status} with body: ${await response.text()}`);
+  }
   const result = await response.json();
   return { embedding: result as number[], model: "intfloat/multilingual-e5-large" };
 }

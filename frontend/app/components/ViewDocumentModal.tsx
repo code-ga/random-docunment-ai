@@ -4,7 +4,6 @@ interface ViewDocumentModalProps {
   onClose: () => void;
 }
 
-
 export default function ViewDocumentModal({
   document,
   onClose,
@@ -13,11 +12,11 @@ export default function ViewDocumentModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-[#1e293b] w-full max-w-lg rounded-xl p-6 shadow-lg relative">
+      <div className="bg-[#1e293b] w-full max-w-lg rounded-xl p-6 shadow-lg relative overflow-y-scroll max-h-1/2">
         <h2 className="text-xl font-semibold mb-4">{document.title}</h2>
-        <p className="text-sm text-gray-300 whitespace-pre-wrap">
+        <p className="text-sm text-gray-300 whitespace-pre-wrap ">
           {/* Basic escaping to prevent XSS. Ideally, use a library like DOMPurify for proper sanitization */}
-          {String(document.summary).replace(/</g, '<').replace(/>/g, '>')}{" "}
+          {String(document.summary).replace(/</g, "<").replace(/>/g, ">")}{" "}
           {document.savingPath && `(${document.savingPath})`}
         </p>
         <button

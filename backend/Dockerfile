@@ -9,23 +9,24 @@ RUN apt-get update && apt-get install -y python3 make build-essential libvips-de
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json drizzle.config.ts /temp/dev/
-RUN cd /temp/dev && bun install --omit=dev && bun add sharp --platform=linux --arch=x64
+RUN cd /temp/dev && bun install --omit=dev 
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
 COPY package.json drizzle.config.ts /temp/prod/
-RUN cd /temp/prod && bun install --production && bun add sharp --platform=linux --arch=x64
+RUN cd /temp/prod && bun install --production 
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
 FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
+ENV NODE_ENV=production
+COPY package.json drizzle.config.ts ./
+RUN bun add drizzle-kit
 COPY . .
 
 # [optional] tests & build
-ENV NODE_ENV=production
 # just for the test step
-RUN bun add drizzle-kit
 RUN bun run test
 RUN bun run build
 

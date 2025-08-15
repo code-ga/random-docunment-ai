@@ -160,7 +160,7 @@ export const messages = pgTable('messages', {
     .notNull(),
   userId: text('user_id').references(() => user.id),
   role: messageRoleEnum('role').notNull(),
-  content: text('content'),
+  content: text('content').notNull(),
   name: text('name'),
   createdAt: timestamp('created_at').defaultNow(),
   index: integer('index').notNull().default(0),
