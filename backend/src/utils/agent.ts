@@ -1,11 +1,14 @@
 import { streamText, tool, Tool, ModelMessage, stepCountIs } from "ai"
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or, like, SQL, sql, and } from "drizzle-orm";
 import z from "zod";
 import { db, table } from "../database";
 import { findSimilarDocuments } from "./embedding";
 import { aiModel } from './getAiClient';
+import { AnyPgColumn } from "drizzle-orm/pg-core";
 
-
+export function lower(col: AnyPgColumn): SQL {
+  return sql`lower(${col})`;
+}
 
 const instructions = `
 You are a neutral AI learning assistant.  
@@ -18,6 +21,7 @@ Rules:
    - Topic or document
    - Knowledge level (Beginner/Intermediate/Expert)
    - Scope (All content or specific sections)
+   - Search or list available link and document then ask user if they want you to add or edit the existing quiz or create a new one
 4. **DB Check** – Query DB to confirm topic exists before quiz. If missing, suggest alternatives.
 5. **Quiz Creation** – Use a tool to generate BOTH flashcards and MCQ from DB content.  
    After each answer, give:
@@ -337,7 +341,22 @@ export const streamChat = async (workspaceId: string, chatId: string, userID: st
       async execute({ ids }) {
         return await db.select().from(table.chunks).where(inArray(table.chunks.id, ids));
       }
-    })
+    }),
+    "search_quiz_by_title": tool({
+      name: "search_quiz_by_title",
+      description: "Use this tool to search quiz by title.",
+      inputSchema: z.object({
+        title: z.string()
+      }),
+      async execute({ title }) {
+        const lowerCaseTitle = title.toLowerCase();
+        const words = lowerCaseTitle.split(" ");
+        const quizzes = await db.select().from(table.quizCollection).where(
+          and(or(...words.map(word => like(lower(table.quizCollection.name), `%${word}%`))), eq(table.quizCollection.userId, userID))
+        );
+        return quizzes;
+      }
+    }),
   }
   // const agent = new Agent({
   //   name: "Study.ai",

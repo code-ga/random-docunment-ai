@@ -142,7 +142,15 @@ export function Login() {
             or continue with
           </div>
           {/* OAuth Buttons */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             <button
               style={{
                 background: "#fff",
